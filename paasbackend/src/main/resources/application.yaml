@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: paasbackend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/paas_platform?currentSchema=paas_platform,public
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:hx1232}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: paas_platform
+        format_sql: true
+    show-sql: true
+
+  flyway:
+    enabled: true
+    schemas: paas_platform
+    default-schema: paas_platform
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+jwt:
+  secret: ${JWT_SECRET:trocar-este-segredo-em-producao-minimo-256-bits-aleatorio}
+  expiration: 86400000 # 24h em ms
