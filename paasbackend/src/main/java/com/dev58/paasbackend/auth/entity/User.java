@@ -65,8 +65,13 @@ private String email;
         if (publicUuid == null) {
             publicUuid = UUID.randomUUID();
         }
+        // Fail-safe default: if status wasn't explicitly set by the
+        // caller (AuthService.register() always sets it), default to
+        // the more restrictive state rather than ACTIVE. The real
+        // decision lives in AuthService, driven by the
+        // app.registration.require-email-verification property.
         if (status == null) {
-            status = "ACTIVE";
+            status = "PENDING_VERIFICATION";
         }
         OffsetDateTime now = OffsetDateTime.now();
         createdAt = now;

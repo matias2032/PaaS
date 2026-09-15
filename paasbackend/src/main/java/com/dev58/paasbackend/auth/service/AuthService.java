@@ -7,11 +7,12 @@ import com.dev58.paasbackend.auth.exception.InvalidCredentialsException;
 import com.dev58.paasbackend.auth.exception.UserAlreadyExistsException;
 import com.dev58.paasbackend.auth.exception.UserNotFoundException;
 import com.dev58.paasbackend.auth.repository.UserRepository;
+import com.dev58.paasbackend.common.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.dev58.paasbackend.common.security.JwtService;
 
 import java.util.UUID;
 
@@ -23,15 +24,22 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
+    // Driven by application-dev.yml / application-prod.yml — see the
+    // TODO comment in application-prod.yml for what's still missing
+    // (actually sending the activation email) before this can be
+    // safely turned on in production.
+    @Value("${app.registration.require-email-verification:false}")
+    private boolean requireEmailVerification;
+
     @Transactional
     public AuthResponseDTO register(AuthRequestDTO request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistsException(
-                    "Já existe um utilizador com este email");
+                    "A user with this email already exists");
         }
 
         if (request.getFirstName() == null || request.getFirstName().isBlank()) {
-            throw new IllegalArgumentException("Nome é obrigatório");
+            throw new IllegalArgumentException("First name is required");
         }
 
         User user = User.builder()
@@ -40,6 +48,7 @@ public class AuthService {
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .status(requireEmailVerification ? "PENDING_VERIFICATION" : "ACTIVE")
                 .build();
 
         User saved = userRepository.save(user);
@@ -53,10 +62,10 @@ public class AuthService {
     public AuthResponseDTO login(AuthRequestDTO request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException(
-                        "Email ou password incorretos"));
+                        "Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new InvalidCredentialsException("Email ou password incorretos");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
         String token = jwtService.generateToken(user.getEmail(), user.getPublicUuid());
@@ -67,7 +76,7 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthResponseDTO getByPublicUuid(UUID publicUuid) {
         User user = userRepository.findByPublicUuid(publicUuid)
-                .orElseThrow(() -> new UserNotFoundException("Utilizador não encontrado"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         return toResponseDTO(user, null);
     }

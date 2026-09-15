@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: paasbackend
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: paas_platform
+        format_sql: false
+    show-sql: false
+
+  flyway:
+    enabled: true
+    schemas: paas_platform
+    default-schema: paas_platform
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000 # 24h in ms
+
+app:
+  registration:
+    require-email-verification: true
+
+# TODO (production): sending the actual activation email is not
+# implemented yet. When this feature is picked up:
+#   - add an EmailVerificationToken entity/table (or a signed JWT
+#     with a short expiry) to represent the activation link;
+#   - AuthService.register() must generate this token and send it
+#     via JavaMailSender (already a project dependency);
+#   - add an endpoint, e.g. GET /api/auth/activate?token=..., that
+#     validates the token and flips the user's status to ACTIVE.

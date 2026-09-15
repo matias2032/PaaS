@@ -138,6 +138,7 @@
     <artifactId>spring-boot-maven-plugin</artifactId>
     <configuration>
         <mainClass>com.dev58.paasbackend.PaasbackendApplication</mainClass>
+        <jvmArguments>-Dspring.profiles.active=dev</jvmArguments>
     </configuration>
 </plugin>
 			<plugin>

@@ -26,4 +26,10 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET:trocar-este-segredo-em-producao-minimo-256-bits-aleatorio}
-  expiration: 86400000 # 24h em ms
+  expiration: 86400000 # 24h in ms
+
+app:
+  registration:
+    # Local/dev: skip email verification so new accounts are usable
+    # immediately, without needing a working mail server.
+    require-email-verification: false

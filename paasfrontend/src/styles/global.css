@@ -1,0 +1,121 @@
+/* ==========================================================
+   GLOBAL / CENTRAL STYLESHEET
+   All modules import this single file. Component-specific
+   styling is intentionally left minimal for now — pages are
+   still skeletons. Fill in colors, spacing and typography here
+   when styling begins; keep it centralized instead of spreading
+   styles across individual component files.
+   ========================================================== */
+
+/* TODO: define real design tokens (colors, spacing scale, fonts) */
+:root {
+  --color-primary: #000000;
+  --color-error: #cc0000;
+  --spacing-unit: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  /* TODO: set the real font-family once defined */
+  font-family: sans-serif;
+}
+
+/* ---------- Button ---------- */
+.btn {
+  cursor: pointer;
+  /* TODO: padding, border-radius, colors */
+}
+
+.btn-primary {
+  /* TODO: primary button styling */
+}
+
+.btn-secondary {
+  /* TODO: secondary button styling */
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ---------- TextField ---------- */
+.text-field {
+  display: flex;
+  flex-direction: column;
+  /* TODO: spacing between label/input/error */
+}
+
+.text-field-label {
+  /* TODO: label styling */
+}
+
+.text-field-input {
+  /* TODO: input border, padding, focus state */
+}
+
+.text-field-error {
+  color: var(--color-error);
+  /* TODO: font-size, spacing */
+}
+
+/* ---------- Spinner ---------- */
+.spinner {
+  /* TODO: actual spinner animation/appearance */
+}
+
+/* ---------- ErrorMessage ---------- */
+.error-message {
+  color: var(--color-error);
+  /* TODO: background, padding, border for an alert-like look */
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  /* TODO: width, height, background */
+}
+
+.sidebar-header {
+  /* TODO: logo/title area */
+}
+
+.sidebar-nav {
+  /* TODO: scroll behavior if the item list grows */
+}
+
+.sidebar-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-nav-item {
+  /* TODO: spacing between items */
+}
+
+.sidebar-nav-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  /* TODO: color, padding, hover state */
+}
+
+.sidebar-nav-link.active {
+  /* TODO: active/selected state styling */
+}
+
+.sidebar-nav-icon {
+  /* TODO: icon sizing/spacing */
+}
+
+.sidebar-nav-label {
+  /* TODO: label typography */
+}
+
+.sidebar-footer {
+  /* TODO: e.g. logout button area */
+}

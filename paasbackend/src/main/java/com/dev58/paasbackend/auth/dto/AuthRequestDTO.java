@@ -16,12 +16,12 @@ import lombok.Setter;
 @Builder
 public class AuthRequestDTO {
 
-    @NotBlank(message = "Email é obrigatório")
-    @Email(message = "Email inválido")
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email is invalid")
     private String email;
 
-    @NotBlank(message = "Password é obrigatória")
-    @Size(min = 8, message = "Password deve ter no mínimo 8 caracteres")
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
 
     // Usados apenas no registo — ignorados no login
