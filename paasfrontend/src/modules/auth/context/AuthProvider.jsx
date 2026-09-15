@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { login as loginApi, register as registerApi } from '../api/authApi';
+import {
+  login as loginApi,
+  register as registerApi,
+  updateProfile as updateProfileApi,
+  changePassword as changePasswordApi,
+  forgotPassword as forgotPasswordApi,
+  resetPassword as resetPasswordApi,
+} from '../api/authApi';
 import { AuthContext } from './AuthContext';
 
 const STORAGE_KEY = 'auth';
@@ -60,6 +67,70 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // updateProfile/changePassword don't return a token (see
+  // AuthResponseDTO on the backend — token is only populated on
+  // login/register). We merge the fresh user data into the existing
+  // session while keeping the current token intact.
+  async function updateProfile(data) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await updateProfileApi(data);
+      setAuth((prev) => ({ ...response, token: prev?.token ?? null }));
+      return response;
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Profile update failed');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function changePassword(data) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await changePasswordApi(data);
+      setAuth((prev) => ({ ...response, token: prev?.token ?? null }));
+      return response;
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Password change failed');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Neither forgotPassword nor resetPassword touch the current
+  // session: forgotPassword is typically called by someone who isn't
+  // logged in, and resetPassword doesn't get a token back from the
+  // backend — the user is expected to log in manually afterwards.
+  async function forgotPassword(data) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await forgotPasswordApi(data);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Request failed');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function resetPassword(data) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await resetPasswordApi(data);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Password reset failed');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   function logout() {
     setAuth(null);
   }
@@ -72,6 +143,10 @@ export function AuthProvider({ children }) {
     error,
     login,
     register,
+    updateProfile,
+    changePassword,
+    forgotPassword,
+    resetPassword,
     logout,
   };
 

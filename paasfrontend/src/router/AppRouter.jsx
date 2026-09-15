@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import authRoutes from '../modules/auth/AuthRoutes';
 import ProtectedRoute from '../shared/layout/ProtectedRoute';
 import DashboardPage from '../modules/common/pages/DashboardPage';
+import ProfilePage from '../modules/auth/pages/ProfilePage';
 
 const allRoutes = [
   ...authRoutes,
@@ -21,6 +22,15 @@ function AppRouter() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

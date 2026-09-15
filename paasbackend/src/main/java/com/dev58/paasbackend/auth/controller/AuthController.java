@@ -2,12 +2,19 @@ package com.dev58.paasbackend.auth.controller;
 
 import com.dev58.paasbackend.auth.dto.AuthRequestDTO;
 import com.dev58.paasbackend.auth.dto.AuthResponseDTO;
+import com.dev58.paasbackend.auth.dto.UpdateProfileRequestDTO;
+import com.dev58.paasbackend.auth.dto.ChangePasswordRequestDTO;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import com.dev58.paasbackend.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.dev58.paasbackend.auth.dto.ForgotPasswordRequestDTO;
+import com.dev58.paasbackend.auth.dto.MessageResponseDTO;
+import com.dev58.paasbackend.auth.dto.ResetPasswordRequestDTO;
 
 import java.util.UUID;
 
@@ -33,6 +40,40 @@ public class AuthController {
     @GetMapping("/{publicUuid}")
     public ResponseEntity<AuthResponseDTO> getByPublicUuid(@PathVariable UUID publicUuid) {
         AuthResponseDTO response = authService.getByPublicUuid(publicUuid);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<AuthResponseDTO> updateProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody UpdateProfileRequestDTO request
+    ) {
+        AuthResponseDTO response = authService.updateProfile(userDetails.getUsername(), request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<AuthResponseDTO> changePassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody ChangePasswordRequestDTO request
+    ) {
+        AuthResponseDTO response = authService.changePassword(userDetails.getUsername(), request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponseDTO> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequestDTO request
+    ) {
+        MessageResponseDTO response = authService.forgotPassword(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponseDTO> resetPassword(
+            @Valid @RequestBody ResetPasswordRequestDTO request
+    ) {
+        MessageResponseDTO response = authService.resetPassword(request);
         return ResponseEntity.ok(response);
     }
 }

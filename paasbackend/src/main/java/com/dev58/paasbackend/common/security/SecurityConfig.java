@@ -51,10 +51,17 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-.authorizeHttpRequests(auth -> auth
-    .requestMatchers("/api/auth/**", "/error").permitAll()
-    .anyRequest().authenticated()
-)
+                .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(
+                            "/api/auth/register",
+                            "/api/auth/login",
+                            "/api/auth/{publicUuid}",
+                            "/api/auth/forgot-password",
+                            "/api/auth/reset-password",
+                            "/error"
+                    ).permitAll()
+                    .anyRequest().authenticated()
+                )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class

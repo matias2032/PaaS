@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import Button from '../../../shared/components/Button';
 import { useAuth } from '../../auth/hooks/useAuth';
 
 /**
@@ -11,9 +13,14 @@ function DashboardPage() {
     <div className="dashboard-page">
       <h1>Dashboard</h1>
       <p>Welcome, {user?.firstName ?? 'user'}.</p>
-      <button type="button" onClick={logout}>
+
+      <Link to="/profile">
+        <Button variant="secondary">Edit profile</Button>
+      </Link>
+
+      <Button variant="secondary" onClick={logout}>
         Log out
-      </button>
+      </Button>
     </div>
   );
 }
