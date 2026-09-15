@@ -8,6 +8,7 @@ import {
   resetPassword as resetPasswordApi,
 } from '../api/authApi';
 import { AuthContext } from './AuthContext';
+import { setAccessToken, clearAccessToken } from '../../../lib/api/tokenStore';
 
 const STORAGE_KEY = 'auth';
 
@@ -35,7 +36,27 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     persistAuth(auth);
+
+    // Mantém o tokenStore (em memória, usado pelo httpClient) sincronizado
+    // com o estado de auth. Isto também restaura o token em memória após
+    // um refresh de página (F5), já que tokenStore começa sempre vazio
+    // mas o localStorage pode ter uma sessão válida.
+    if (auth?.token) {
+      setAccessToken(auth.token);
+    } else {
+      clearAccessToken();
+    }
   }, [auth]);
+
+  // CORREÇÃO ADICIONADA: Escuta o evento global de não autorizado para limpar a sessão
+  useEffect(() => {
+    function handleUnauthorized() {
+      setAuth(null);
+    }
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
 
   async function login(credentials) {
     setIsLoading(true);

@@ -1,17 +1,17 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from '../../../shared/components/Button';
 import TextField from '../../../shared/components/TextField';
 import ErrorMessage from '../../../shared/components/ErrorMessage';
 import Spinner from '../../../shared/components/Spinner';
 import { useAuth } from '../hooks/useAuth';
 
-/**
- * Change password form, for logged-in users. Structure only — styling
- * comes later.
- */
 function ChangePasswordForm({ onSuccess }) {
-  const { changePassword, isLoading, error } = useAuth();
+  const { changePassword, logout, isLoading, error } = useAuth();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '' });
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const navigate = useNavigate();
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -20,13 +20,26 @@ function ChangePasswordForm({ onSuccess }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    setSuccessMessage('');
+
     try {
       await changePassword(form);
       setForm({ currentPassword: '', newPassword: '' });
-      onSuccess?.();
-    } catch {
-      // Error is already captured in the auth context.
-    }
+      
+      setSuccessMessage('Password successfully changed! Redirecting in 3 seconds...');
+      setIsRedirecting(true);
+
+      // Só redireciona se entrar no try (sucesso na API)
+      setTimeout(() => {
+        logout();
+        onSuccess?.();
+        navigate('/login');
+      }, 3000);
+
+} catch {
+  // Em caso de erro, apenas cancela o estado de redirecionamento.
+  setIsRedirecting(false);
+}
   }
 
   return (
@@ -38,6 +51,7 @@ function ChangePasswordForm({ onSuccess }) {
         value={form.currentPassword}
         onChange={handleChange}
         required
+        disabled={isRedirecting}
       />
       <TextField
         label="New password"
@@ -46,11 +60,18 @@ function ChangePasswordForm({ onSuccess }) {
         value={form.newPassword}
         onChange={handleChange}
         required
+        disabled={isRedirecting}
       />
 
       <ErrorMessage message={error} />
 
-      <Button type="submit" disabled={isLoading}>
+      {successMessage && (
+        <div style={{ color: 'green', margin: '10px 0' }}>
+          {successMessage}
+        </div>
+      )}
+
+      <Button type="submit" disabled={isLoading || isRedirecting}>
         {isLoading ? <Spinner /> : 'Change password'}
       </Button>
     </form>
