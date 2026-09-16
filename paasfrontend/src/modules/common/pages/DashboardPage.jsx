@@ -14,6 +14,10 @@ function DashboardPage() {
       <h1>Dashboard</h1>
       <p>Welcome, {user?.firstName ?? 'user'}.</p>
 
+      <Link to="/organizations">
+        <Button variant="secondary">My organizations</Button>
+      </Link>
+
       <Link to="/profile">
         <Button variant="secondary">Edit profile</Button>
       </Link>

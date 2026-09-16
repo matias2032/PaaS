@@ -1,12 +1,16 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import authRoutes from '../modules/auth/AuthRoutes';
+import organizationRoutes from '../modules/organization/OrganizationRoutes';
 import ProtectedRoute from '../shared/layout/ProtectedRoute';
 import DashboardPage from '../modules/common/pages/DashboardPage';
 import ProfilePage from '../modules/auth/pages/ProfilePage';
 
 const allRoutes = [
   ...authRoutes,
-  // Future modules append their routes here, e.g. ...organizationRoutes
+  ...organizationRoutes,
+  // Future modules append their routes here. Fully-protected modules
+  // (billing, project, service) should follow organizationRoutes'
+  // pattern of self-wrapping each element in <ProtectedRoute>.
 ];
 
 function AppRouter() {

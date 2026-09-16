@@ -5,6 +5,11 @@ import com.dev58.paasbackend.auth.exception.InvalidResetTokenException;
 import com.dev58.paasbackend.auth.exception.UserAlreadyExistsException;
 import com.dev58.paasbackend.auth.exception.UserNotFoundException;
 import com.dev58.paasbackend.common.dto.ErrorResponseDTO;
+import com.dev58.paasbackend.organization.exception.OrganizationMemberAlreadyExistsException;
+import com.dev58.paasbackend.organization.exception.OrganizationMemberNotFoundException;
+import com.dev58.paasbackend.organization.exception.OrganizationNotFoundException;
+import com.dev58.paasbackend.organization.exception.OrganizationSlugAlreadyExistsException;
+import com.dev58.paasbackend.organization.exception.PermissionDeniedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,6 +57,34 @@ public class GlobalExceptionHandler {
             InvalidResetTokenException ex, HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(OrganizationNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleOrganizationNotFound(
+            OrganizationNotFoundException ex, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(OrganizationMemberNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleOrganizationMemberNotFound(
+            OrganizationMemberNotFoundException ex, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(PermissionDeniedException.class)
+    public ResponseEntity<ErrorResponseDTO> handlePermissionDenied(
+            PermissionDeniedException ex, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler({OrganizationSlugAlreadyExistsException.class, OrganizationMemberAlreadyExistsException.class})
+    public ResponseEntity<ErrorResponseDTO> handleOrganizationConflict(
+            RuntimeException ex, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

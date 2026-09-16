@@ -17,21 +17,22 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
-    @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException(
-                        "Utilizador não encontrado: " + email));
+@Override
+public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new UsernameNotFoundException(
+                    "Utilizador não encontrado: " + email));
 
-        // ROLE_USER é genérico — permissões reais por organização
-        // são resolvidas no módulo ORGANIZATION via organization_members,
-        // não aqui. Este authority serve só para o Spring Security
-        // aceitar o UserDetails como válido.
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPasswordHash())
-                .authorities(List.of(new SimpleGrantedAuthority("ROLE_USER")))
-                .disabled(!"ACTIVE".equals(user.getStatus()))
-                .build();
-    }
+    // AuthenticatedUser carrega idUser/publicUuid para que os Controllers
+    // os obtenham via @AuthenticationPrincipal sem query extra. Permissões
+    // reais por organização continuam a ser resolvidas no módulo
+    // ORGANIZATION via organization_members, não aqui.
+    return new AuthenticatedUser(
+            user.getIdUser(),
+            user.getPublicUuid(),
+            user.getEmail(),
+            user.getPasswordHash(),
+            "ACTIVE".equals(user.getStatus())
+    );
+}
 }

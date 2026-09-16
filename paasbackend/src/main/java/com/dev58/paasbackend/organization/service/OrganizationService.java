@@ -1,0 +1,211 @@
+package com.dev58.paasbackend.organization.service;
+
+import com.dev58.paasbackend.auth.entity.User;
+import com.dev58.paasbackend.auth.exception.UserNotFoundException;
+import com.dev58.paasbackend.auth.repository.UserRepository;
+import com.dev58.paasbackend.organization.dto.*;
+import com.dev58.paasbackend.organization.entity.Organization;
+import com.dev58.paasbackend.organization.entity.OrganizationMember;
+import com.dev58.paasbackend.organization.entity.OrganizationRole;
+import com.dev58.paasbackend.organization.exception.OrganizationMemberNotFoundException;
+import com.dev58.paasbackend.organization.exception.OrganizationNotFoundException;
+import com.dev58.paasbackend.organization.exception.PermissionDeniedException;
+import com.dev58.paasbackend.organization.exception.OrganizationMemberAlreadyExistsException;
+import com.dev58.paasbackend.organization.exception.OrganizationSlugAlreadyExistsException;
+import com.dev58.paasbackend.organization.repository.OrganizationMemberRepository;
+import com.dev58.paasbackend.organization.repository.OrganizationRepository;
+import com.dev58.paasbackend.organization.repository.OrganizationRoleRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class OrganizationService {
+
+    private static final String ROLE_OWNER = "OWNER";
+    private static final String ROLE_ADMIN = "ADMIN";
+
+    private final OrganizationRepository organizationRepository;
+    private final OrganizationMemberRepository organizationMemberRepository;
+    private final OrganizationRoleRepository organizationRoleRepository;
+    private final UserRepository userRepository;
+
+    // ---- Create ----
+
+    @Transactional
+    public OrganizationResponseDTO createOrganization(OrganizationRequestDTO request, Long currentUserId) {
+        if (organizationRepository.existsBySlug(request.getSlug())) {
+            throw new OrganizationSlugAlreadyExistsException("Slug already in use: " + request.getSlug());
+        }
+
+        Organization organization = Organization.builder()
+                .name(request.getName())
+                .slug(request.getSlug())
+                .build();
+        organization = organizationRepository.save(organization);
+
+        User creator = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + currentUserId));
+
+        OrganizationRole ownerRole = organizationRoleRepository.findByCode(ROLE_OWNER)
+                .orElseThrow(() -> new IllegalStateException("Role OWNER not seeded in organization_roles"));
+
+        OrganizationMember ownerMembership = OrganizationMember.builder()
+                .organization(organization)
+                .user(creator)
+                .organizationRole(ownerRole)
+                .build();
+        organizationMemberRepository.save(ownerMembership);
+
+        return toResponseDTO(organization);
+    }
+
+    // ---- Read ----
+
+    public OrganizationResponseDTO getOrganization(UUID publicUuid, Long currentUserId) {
+        Organization organization = findOrganizationOrThrow(publicUuid);
+        requireMembership(organization, currentUserId);
+        return toResponseDTO(organization);
+    }
+
+    public List<OrganizationResponseDTO> listOrganizationsForCurrentUser(Long currentUserId) {
+        return organizationMemberRepository.findByUser_IdUser(currentUserId).stream()
+                .map(member -> toResponseDTO(member.getOrganization()))
+                .toList();
+    }
+
+    public List<OrganizationRoleResponseDTO> listRoles() {
+        return organizationRoleRepository.findAll().stream()
+                .map(role -> OrganizationRoleResponseDTO.builder()
+                        .idOrganizationRole(role.getIdOrganizationRole())
+                        .code(role.getCode())
+                        .name(role.getName())
+                        .build())
+                .toList();
+    }
+
+    // ---- Update ----
+
+    @Transactional
+    public OrganizationResponseDTO updateOrganization(UUID publicUuid, OrganizationRequestDTO request, Long currentUserId) {
+        Organization organization = findOrganizationOrThrow(publicUuid);
+        requireOwnerOrAdmin(organization, currentUserId);
+
+        organization.setName(request.getName());
+        // Slug intentionally not updated here — treat as immutable after
+        // creation unless a dedicated flow is decided later (affects
+        // URLs/references elsewhere in the platform).
+        organization = organizationRepository.save(organization);
+
+        return toResponseDTO(organization);
+    }
+
+    // ---- Members ----
+
+    @Transactional
+    public OrganizationMemberResponseDTO addMember(UUID orgPublicUuid, OrganizationMemberRequestDTO request, Long currentUserId) {
+        Organization organization = findOrganizationOrThrow(orgPublicUuid);
+        requireOwnerOrAdmin(organization, currentUserId);
+
+        User userToAdd = userRepository.findByEmail(request.getUserEmail())
+                .orElseThrow(() -> new UserNotFoundException("No user registered with email: " + request.getUserEmail()));
+
+        if (organizationMemberRepository.existsByOrganization_IdOrganizationAndUser_IdUser(
+                organization.getIdOrganization(), userToAdd.getIdUser())) {
+            throw new OrganizationMemberAlreadyExistsException("User is already a member of this organization");
+        }
+
+        OrganizationRole role = organizationRoleRepository.findByCode(request.getRoleCode())
+                .orElseThrow(() -> new IllegalArgumentException("Unknown role code: " + request.getRoleCode()));
+
+        OrganizationMember member = OrganizationMember.builder()
+                .organization(organization)
+                .user(userToAdd)
+                .organizationRole(role)
+                .build();
+        member = organizationMemberRepository.save(member);
+
+        return toMemberResponseDTO(member);
+    }
+
+    @Transactional
+    public void removeMember(UUID orgPublicUuid, UUID memberUserPublicUuid, Long currentUserId) {
+        Organization organization = findOrganizationOrThrow(orgPublicUuid);
+        requireOwnerOrAdmin(organization, currentUserId);
+
+        User targetUser = userRepository.findByPublicUuid(memberUserPublicUuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + memberUserPublicUuid));
+
+        OrganizationMember member = organizationMemberRepository
+                .findByOrganization_IdOrganizationAndUser_IdUser(organization.getIdOrganization(), targetUser.getIdUser())
+                .orElseThrow(() -> new OrganizationMemberNotFoundException("User is not a member of this organization"));
+
+        if (ROLE_OWNER.equals(member.getOrganizationRole().getCode())) {
+            // Decision point: block removing the last/only OWNER so an
+            // organization is never left without one. Revisit if
+            // organizations should support ownership transfer instead.
+            throw new IllegalArgumentException("The organization OWNER cannot be removed");
+        }
+
+        organizationMemberRepository.delete(member);
+    }
+
+    public List<OrganizationMemberResponseDTO> listMembers(UUID orgPublicUuid, Long currentUserId) {
+        Organization organization = findOrganizationOrThrow(orgPublicUuid);
+        requireMembership(organization, currentUserId);
+
+        return organizationMemberRepository.findByOrganization_IdOrganization(organization.getIdOrganization()).stream()
+                .map(this::toMemberResponseDTO)
+                .toList();
+    }
+
+    // ---- Internal helpers ----
+
+    private Organization findOrganizationOrThrow(UUID publicUuid) {
+        return organizationRepository.findByPublicUuid(publicUuid)
+                .orElseThrow(() -> new OrganizationNotFoundException("Organization not found: " + publicUuid));
+    }
+
+    private OrganizationMember requireMembership(Organization organization, Long currentUserId) {
+        return organizationMemberRepository
+                .findByOrganization_IdOrganizationAndUser_IdUser(organization.getIdOrganization(), currentUserId)
+                .orElseThrow(() -> new PermissionDeniedException("User is not a member of this organization"));
+    }
+
+    private void requireOwnerOrAdmin(Organization organization, Long currentUserId) {
+        OrganizationMember membership = requireMembership(organization, currentUserId);
+        String roleCode = membership.getOrganizationRole().getCode();
+        if (!ROLE_OWNER.equals(roleCode) && !ROLE_ADMIN.equals(roleCode)) {
+            throw new PermissionDeniedException("Only OWNER or ADMIN can perform this action");
+        }
+    }
+
+    private OrganizationResponseDTO toResponseDTO(Organization organization) {
+        return OrganizationResponseDTO.builder()
+                .publicUuid(organization.getPublicUuid())
+                .name(organization.getName())
+                .slug(organization.getSlug())
+                .status(organization.getStatus())
+                .createdAt(organization.getCreatedAt())
+                .updatedAt(organization.getUpdatedAt())
+                .build();
+    }
+
+    private OrganizationMemberResponseDTO toMemberResponseDTO(OrganizationMember member) {
+        User user = member.getUser();
+        OrganizationRole role = member.getOrganizationRole();
+        return OrganizationMemberResponseDTO.builder()
+                .userPublicUuid(user.getPublicUuid())
+                .userFirstName(user.getFirstName())
+                .userLastName(user.getLastName())
+                .userEmail(user.getEmail())
+                .roleCode(role.getCode())
+                .roleName(role.getName())
+                .joinedAt(member.getJoinedAt())
+                .build();
+    }
+}
