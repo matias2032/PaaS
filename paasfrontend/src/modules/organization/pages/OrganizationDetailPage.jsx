@@ -84,26 +84,37 @@ function OrganizationDetailPage() {
   // Single source of truth for the OWNER/ADMIN gate on this page — both
   // the settings form and the add-member form key off this same value,
   // so the permission rule can't drift between the two sections.
-  const canManageMembers =
-    currentMembership?.roleCode === 'OWNER' || currentMembership?.roleCode === 'ADMIN';
+const canManageMembers =
+  currentMembership?.roleCode === 'OWNER' || currentMembership?.roleCode === 'ADMIN';
 
-  // Stricter gate: registration (add member), role changes, and
-  // deactivation are OWNER-only — ADMIN does not qualify here, unlike
-  // canManageMembers above (which still covers "remove member" and the
-  // settings form). Kept as a separate constant rather than folded into
-  // canManageMembers so the two permission rules can't be conflated.
-  const isOwner = currentMembership?.roleCode === 'OWNER';
+// Only OWNER can remove other members.
+// Every member can still leave the organization themselves.
+const canRemoveOtherMembers = currentMembership?.roleCode === 'OWNER';
 
-  async function handleRemove(member) {
-    try {
-      await removeMember(publicUuid, member.userPublicUuid);
-      setMembers((prev) =>
-        prev.filter((item) => item.userPublicUuid !== member.userPublicUuid)
-      );
-    } catch {
-      // Surfaced via context `error` state already.
+// Registration, role changes and deactivation remain OWNER-only.
+const isOwner = currentMembership?.roleCode === 'OWNER';
+
+async function handleRemove(member) {
+  try {
+    const isCurrentUser =
+      member.userPublicUuid === user?.publicUuid;
+
+    await removeMember(publicUuid, member.userPublicUuid);
+
+    if (isCurrentUser) {
+      navigate('/organizations');
+      return;
     }
+
+    setMembers((prev) =>
+      prev.filter(
+        (item) => item.userPublicUuid !== member.userPublicUuid
+      )
+    );
+  } catch {
+    // Surfaced via context `error` state already.
   }
+}
 
   function handleMemberAdded(member) {
     setMembers((prev) => [...prev, member]);
@@ -194,15 +205,15 @@ function OrganizationDetailPage() {
 
       <section className="organization-detail-page__members">
         <h2>Members</h2>
-        <MemberList
-          members={members}
-          canManageMembers={canManageMembers}
-          canChangeRoles={isOwner}
-          roles={roles}
-          onRemove={handleRemove}
-          onChangeRole={handleChangeRole}
-        />
-
+<MemberList
+  members={members}
+  currentUserPublicUuid={user?.publicUuid}
+  canRemoveOtherMembers={canRemoveOtherMembers}
+  canChangeRoles={isOwner}
+  roles={roles}
+  onRemove={handleRemove}
+  onChangeRole={handleChangeRole}
+/>
         {isOwner && (
           // Registration is OWNER-only — canManageMembers (OWNER+ADMIN)
           // is intentionally NOT used as the gate here, unlike before.

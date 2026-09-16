@@ -187,27 +187,55 @@ public class OrganizationService {
         return toMemberResponseDTO(member);
     }
 
-    @Transactional
-    public void removeMember(UUID orgPublicUuid, UUID memberUserPublicUuid, Long currentUserId) {
-        Organization organization = findOrganizationOrThrow(orgPublicUuid);
-        requireOwnerOrAdmin(organization, currentUserId);
+@Transactional
+public void removeMember(
+        UUID orgPublicUuid,
+        UUID memberUserPublicUuid,
+        Long currentUserId) {
 
-        User targetUser = userRepository.findByPublicUuid(memberUserPublicUuid)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + memberUserPublicUuid));
+    Organization organization = findOrganizationOrThrow(orgPublicUuid);
 
-        OrganizationMember member = organizationMemberRepository
-                .findByOrganization_IdOrganizationAndUser_IdUser(organization.getIdOrganization(), targetUser.getIdUser())
-                .orElseThrow(() -> new OrganizationMemberNotFoundException("User is not a member of this organization"));
+    User targetUser = userRepository.findByPublicUuid(memberUserPublicUuid)
+            .orElseThrow(() ->
+                    new UserNotFoundException(
+                            "User not found: " + memberUserPublicUuid));
+
+    OrganizationMember member = organizationMemberRepository
+            .findByOrganization_IdOrganizationAndUser_IdUser(
+                    organization.getIdOrganization(),
+                    targetUser.getIdUser())
+            .orElseThrow(() ->
+                    new OrganizationMemberNotFoundException(
+                            "User is not a member of this organization"));
+
+    boolean isSelf = targetUser.getIdUser().equals(currentUserId);
+
+    if (!isSelf) {
+        requireOwner(organization, currentUserId);
 
         if (ROLE_OWNER.equals(member.getOrganizationRole().getCode())) {
-            // Decision point: block removing the last/only OWNER so an
-            // organization is never left without one. Revisit if
-            // organizations should support ownership transfer instead.
-            throw new IllegalArgumentException("The organization OWNER cannot be removed");
+            throw new IllegalArgumentException(
+                    "The organization OWNER cannot be removed");
         }
+    } else if (ROLE_OWNER.equals(member.getOrganizationRole().getCode())) {
 
-        organizationMemberRepository.delete(member);
+        long ownerCount = organizationMemberRepository
+                .findByOrganization_IdOrganization(
+                        organization.getIdOrganization())
+                .stream()
+                .filter(m ->
+                        ROLE_OWNER.equals(
+                                m.getOrganizationRole().getCode()))
+                .count();
+
+        if (ownerCount <= 1) {
+            throw new IllegalArgumentException(
+                    "The last OWNER cannot leave the organization");
+        }
     }
+
+    organizationMemberRepository.delete(member);
+}
 
     public List<OrganizationMemberResponseDTO> listMembers(UUID orgPublicUuid, Long currentUserId) {
         Organization organization = findOrganizationOrThrow(orgPublicUuid);
