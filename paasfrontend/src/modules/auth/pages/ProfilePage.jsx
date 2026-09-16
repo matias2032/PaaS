@@ -1,5 +1,6 @@
 import ChangePasswordForm from '../components/ChangePasswordForm';
 import { useAuth } from '../hooks/useAuth';
+import BackButton from "../../../shared/components/BackButton";
 
 /**
  * Skeleton only — no styling yet.
@@ -13,6 +14,7 @@ function ProfilePage() {
 
   return (
     <div className="profile-page">
+       <BackButton />
       <h1>Profile</h1>
 
       <section className="profile-page__info">

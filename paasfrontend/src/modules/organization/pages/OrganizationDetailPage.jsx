@@ -5,6 +5,7 @@ import { useOrganization } from '../hooks/useOrganization';
 import OrganizationForm from '../components/OrganizationForm';
 import MemberList from '../components/MemberList';
 import AddMemberForm from '../components/AddMemberForm';
+import BackButton from "../../../shared/components/BackButton";
 
 /**
  * GET /api/organizations/{publicUuid} (via the org already in
@@ -156,7 +157,9 @@ async function handleRemove(member) {
   if (!organization) return <p>Organization not found.</p>;
 
   return (
+
     <div className="organization-detail-page">
+      <BackButton />
       <h1>{organization.name}</h1>
 
       <section className="organization-detail-page__settings">

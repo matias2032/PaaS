@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import OrganizationForm from '../components/OrganizationForm';
+import BackButton from "../../../shared/components/BackButton";
 
 /**
  * POST /api/organizations, via OrganizationForm in create mode
@@ -15,6 +16,7 @@ function CreateOrganizationPage() {
 
   return (
     <div className="create-organization-page">
+       <BackButton />
       <h1>New organization</h1>
       <OrganizationForm onSuccess={handleSuccess} />
     </div>

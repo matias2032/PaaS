@@ -665,3 +665,20 @@ a:hover {
   margin-right: var(--space-2);
   margin-bottom: var(--space-2);
 }
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  color:black;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.back-button:hover {
+  background: #f3f4f6;
+}

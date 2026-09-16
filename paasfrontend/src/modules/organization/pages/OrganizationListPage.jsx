@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useOrganization } from '../hooks/useOrganization';
 import OrganizationCard from '../components/OrganizationCard';
-
+import BackButton from "../../../shared/components/BackButton";
 /**
  * GET /api/organizations, rendered as a list of OrganizationCard.
  * Selecting a card sets it as the active organization (context) AND
@@ -33,6 +33,7 @@ function OrganizationListPage() {
   return (
     <div className="organization-list-page">
       <header className="organization-list-page__header">
+         <BackButton />
         <h1>My organizations</h1>
         <Link to="/organizations/new" className="organization-list-page__create-link">
           New organization
