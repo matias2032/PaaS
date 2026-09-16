@@ -14,11 +14,11 @@ import lombok.Setter;
 // ignored/optional for that operation — decide exact contract in
 // Service/Controller).
 //
-// NOTE (frontend handoff): only the "add member" use is currently wired
-// to an endpoint (POST /api/organizations/{publicUuid}/members). There is
-// no PUT/PATCH on OrganizationController for changing a member's role yet,
-// so the "role change" reuse described above is aspirational until that
-// endpoint exists.
+// NOTE (frontend handoff): both uses are now wired to endpoints —
+// "add member" via POST /api/organizations/{publicUuid}/members and
+// "change role" via PATCH /api/organizations/{publicUuid}/members/{userPublicUuid}.
+// Both are OWNER-only (not OWNER+ADMIN) — decided 2026: registration and
+// role changes are sensitive enough to restrict to OWNER alone.
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,7 +26,8 @@ import lombok.Setter;
 @Builder
 public class OrganizationMemberRequestDTO {
 
-    @NotBlank
+    // Not @NotBlank: required for "add member" (enforced manually in
+    // OrganizationService.addMember) but unused/ignored for "change role".
     @Email
     private String userEmail;
 

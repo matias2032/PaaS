@@ -109,7 +109,13 @@ public class OrganizationService {
     @Transactional
     public OrganizationMemberResponseDTO addMember(UUID orgPublicUuid, OrganizationMemberRequestDTO request, Long currentUserId) {
         Organization organization = findOrganizationOrThrow(orgPublicUuid);
-        requireOwnerOrAdmin(organization, currentUserId);
+        requireOwner(organization, currentUserId);
+
+        if (request.getUserEmail() == null || request.getUserEmail().isBlank()) {
+            // userEmail is no longer @NotBlank at the DTO level (shared with
+            // role-change, which doesn't need it) — enforce it here instead.
+            throw new IllegalArgumentException("userEmail is required to add a member");
+        }
 
         User userToAdd = userRepository.findByEmail(request.getUserEmail())
                 .orElseThrow(() -> new UserNotFoundException("No user registered with email: " + request.getUserEmail()));
@@ -127,6 +133,55 @@ public class OrganizationService {
                 .user(userToAdd)
                 .organizationRole(role)
                 .build();
+        member = organizationMemberRepository.save(member);
+
+        return toMemberResponseDTO(member);
+    }
+
+
+        @Transactional
+    public OrganizationResponseDTO deactivateOrganization(UUID publicUuid, Long currentUserId) {
+        Organization organization = findOrganizationOrThrow(publicUuid);
+        requireOwner(organization, currentUserId);
+
+        // Soft-delete: no hard delete exists. Reactivation is not exposed
+        // yet — revisit if the product needs it.
+        organization.setStatus("INACTIVE");
+        organization = organizationRepository.save(organization);
+
+        return toResponseDTO(organization);
+    }
+
+        @Transactional
+    public OrganizationMemberResponseDTO changeMemberRole(
+            UUID orgPublicUuid, UUID memberUserPublicUuid, OrganizationMemberRequestDTO request, Long currentUserId) {
+        Organization organization = findOrganizationOrThrow(orgPublicUuid);
+        requireOwner(organization, currentUserId);
+
+        User targetUser = userRepository.findByPublicUuid(memberUserPublicUuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + memberUserPublicUuid));
+
+        OrganizationMember member = organizationMemberRepository
+                .findByOrganization_IdOrganizationAndUser_IdUser(organization.getIdOrganization(), targetUser.getIdUser())
+                .orElseThrow(() -> new OrganizationMemberNotFoundException("User is not a member of this organization"));
+
+        OrganizationRole newRole = organizationRoleRepository.findByCode(request.getRoleCode())
+                .orElseThrow(() -> new IllegalArgumentException("Unknown role code: " + request.getRoleCode()));
+
+        boolean isDemotingOwner = ROLE_OWNER.equals(member.getOrganizationRole().getCode())
+                && !ROLE_OWNER.equals(newRole.getCode());
+
+        if (isDemotingOwner) {
+            long ownerCount = organizationMemberRepository
+                    .findByOrganization_IdOrganization(organization.getIdOrganization()).stream()
+                    .filter(m -> ROLE_OWNER.equals(m.getOrganizationRole().getCode()))
+                    .count();
+            if (ownerCount <= 1) {
+                throw new IllegalArgumentException("Cannot demote the last remaining OWNER");
+            }
+        }
+
+        member.setOrganizationRole(newRole);
         member = organizationMemberRepository.save(member);
 
         return toMemberResponseDTO(member);
@@ -181,6 +236,13 @@ public class OrganizationService {
         String roleCode = membership.getOrganizationRole().getCode();
         if (!ROLE_OWNER.equals(roleCode) && !ROLE_ADMIN.equals(roleCode)) {
             throw new PermissionDeniedException("Only OWNER or ADMIN can perform this action");
+        }
+    }
+
+    private void requireOwner(Organization organization, Long currentUserId) {
+        OrganizationMember membership = requireMembership(organization, currentUserId);
+        if (!ROLE_OWNER.equals(membership.getOrganizationRole().getCode())) {
+            throw new PermissionDeniedException("Only OWNER can perform this action");
         }
     }
 

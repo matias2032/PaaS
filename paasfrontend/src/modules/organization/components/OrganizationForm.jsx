@@ -62,12 +62,19 @@ function OrganizationForm({ organization, onSuccess }) {
           value={slug}
           maxLength={150}
           required
-          // Slug mutability on edit is a backend Service decision, not
-          // enforced client-side (see OrganizationRequestDTO.java note).
-          // Left editable here; revisit if the backend starts rejecting
-          // slug changes on PUT.
-          onChange={(event) => setSlug(event.target.value)}
+          // Slug is immutable after creation — confirmed intentional in
+          // OrganizationService.updateOrganization (backend silently
+          // ignores changes to this field on PUT). Locked read-only in
+          // edit mode so the UI doesn't imply an edit that won't persist.
+          readOnly={isEditMode}
+          disabled={isEditMode}
+          onChange={(event) => !isEditMode && setSlug(event.target.value)}
         />
+        {isEditMode && (
+          <p className="organization-form__hint">
+            Slug can’t be changed after the organization is created.
+          </p>
+        )}
       </div>
 
       {error && <p className="organization-form__error">{error}</p>}

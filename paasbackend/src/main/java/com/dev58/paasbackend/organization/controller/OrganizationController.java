@@ -42,6 +42,13 @@ public class OrganizationController {
         return organizationService.updateOrganization(publicUuid, request, currentUser.getIdUser());
     }
 
+        @DeleteMapping("/{publicUuid}")
+    public OrganizationResponseDTO deactivate(
+            @PathVariable UUID publicUuid,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return organizationService.deactivateOrganization(publicUuid, currentUser.getIdUser());
+    }
+
     @GetMapping
     public List<OrganizationResponseDTO> listMine(
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
@@ -69,6 +76,15 @@ public class OrganizationController {
             @PathVariable UUID userPublicUuid,
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
         organizationService.removeMember(publicUuid, userPublicUuid, currentUser.getIdUser());
+    }
+
+        @PatchMapping("/{publicUuid}/members/{userPublicUuid}")
+    public OrganizationMemberResponseDTO changeMemberRole(
+            @PathVariable UUID publicUuid,
+            @PathVariable UUID userPublicUuid,
+            @Valid @RequestBody OrganizationMemberRequestDTO request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return organizationService.changeMemberRole(publicUuid, userPublicUuid, request, currentUser.getIdUser());
     }
 
     @GetMapping("/{publicUuid}/members")
