@@ -325,3 +325,343 @@ a:hover {
   padding: var(--space-4) var(--space-4) 0;
   border-top: 1px solid var(--color-ink-soft);
 }
+
+
+/* ==========================================================
+   ORGANIZATION MODULE
+   Closes technical debt #3 (frontend handoff) for this module:
+   OrganizationForm, OrganizationCard, MemberList, AddMemberForm,
+   OrganizationDetailPage. Pages compose these inside the generic
+   card wrapper pattern already used for auth (max-width container),
+   except OrganizationDetailPage and OrganizationListPage, which are
+   wider content pages, not auth-style cards.
+   ========================================================== */
+
+.create-organization-page {
+  max-width: 480px;
+  margin: var(--space-6) auto;
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+/* ---------- OrganizationForm ---------- */
+.organization-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.organization-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.organization-form__field label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.organization-form__field input {
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast);
+}
+
+.organization-form__field input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.organization-form__field input:disabled {
+  background: var(--color-canvas);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.organization-form__hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.organization-form__error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+/* ---------- OrganizationCard ---------- */
+.organization-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.organization-card:hover {
+  border-color: var(--color-primary);
+}
+
+.organization-card--active {
+  border-color: var(--color-primary);
+  background: var(--color-canvas);
+}
+
+.organization-card__name {
+  font-weight: 600;
+  flex: 1;
+}
+
+.organization-card__slug {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.organization-card__status {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  background: var(--color-canvas);
+  text-transform: capitalize;
+}
+
+/* ---------- OrganizationDetailPage ---------- */
+.organization-detail-page {
+  max-width: 720px;
+  margin: var(--space-6) auto;
+  padding: 0 var(--space-4);
+}
+
+.organization-detail-page__settings,
+.organization-detail-page__members {
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.organization-detail-page__readonly {
+  margin: 0;
+}
+
+.organization-detail-page__readonly dt {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-top: var(--space-3);
+}
+
+.organization-detail-page__readonly dt:first-child {
+  margin-top: 0;
+}
+
+.organization-detail-page__readonly dd {
+  margin: 0;
+}
+
+.organization-detail-page__error {
+  color: var(--color-error);
+}
+
+.organization-detail-page__inactive-notice {
+  padding: var(--space-2) var(--space-3);
+  margin-top: var(--space-4);
+  border-left: 3px solid var(--color-text-muted);
+  background: var(--color-canvas);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* Danger zone: deliberately not a full red-filled panel — a bordered
+   inset with an error-toned heading and outline button is enough
+   weight for a destructive-but-reversible-adjacent (soft-delete)
+   action, consistent with .error-message's restrained left-border
+   treatment elsewhere in this sheet. */
+.organization-detail-page__danger-zone {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.organization-detail-page__danger-zone h3 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-base);
+  color: var(--color-error);
+}
+
+.organization-detail-page__deactivate {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-error);
+  background: transparent;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.organization-detail-page__deactivate:hover:not(:disabled) {
+  background: var(--color-error);
+  color: var(--color-text-inverse);
+}
+
+.organization-detail-page__deactivate:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ---------- MemberList ---------- */
+.member-list {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+.member-list__empty {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.member-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.member-list__item:last-child {
+  border-bottom: none;
+}
+
+.member-list__name {
+  font-weight: 600;
+  flex: 1 1 40%;
+}
+
+.member-list__email {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  flex: 1 1 auto;
+}
+
+.member-list__role {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* Sized to sit inline with .member-list__role's footprint rather than
+   stretching full-width like a form field — this is a compact,
+   per-row control, not a standalone input. */
+.member-list__role-select {
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast);
+}
+
+.member-list__role-select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.member-list__remove {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-error);
+  background: transparent;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+}
+
+.member-list__remove:hover {
+  text-decoration: underline;
+}
+
+/* ---------- AddMemberForm ---------- */
+.add-member-form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.add-member-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 200px;
+}
+
+.add-member-form__field label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.add-member-form__field input,
+.add-member-form__field select {
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast);
+}
+
+.add-member-form__field input:focus,
+.add-member-form__field select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.add-member-form__error {
+  flex-basis: 100%;
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+/* ---------- DashboardPage ---------- */
+.dashboard-page {
+  max-width: 480px;
+  margin: var(--space-6) auto;
+  padding: var(--space-5);
+}
+
+.dashboard-page .btn {
+  margin-right: var(--space-2);
+  margin-bottom: var(--space-2);
+}

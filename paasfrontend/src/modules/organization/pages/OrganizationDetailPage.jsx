@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useOrganization } from '../hooks/useOrganization';
 import OrganizationForm from '../components/OrganizationForm';
@@ -23,12 +23,17 @@ import AddMemberForm from '../components/AddMemberForm';
  */
 function OrganizationDetailPage() {
   const { publicUuid } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const {
     organizations,
+    roles,
+    fetchRoles,
     fetchOrganization,
     fetchMembers,
     removeMember,
+    changeMemberRole,
+    deactivateOrganization,
     error,
   } = useOrganization();
 
@@ -45,8 +50,15 @@ function OrganizationDetailPage() {
       setIsLoading(true);
       try {
         const cached = organizations.find((org) => org.publicUuid === publicUuid);
-        const org = cached || (await fetchOrganization(publicUuid));
-        const memberList = await fetchMembers(publicUuid);
+        const [org, memberList] = await Promise.all([
+          cached ? Promise.resolve(cached) : fetchOrganization(publicUuid),
+          fetchMembers(publicUuid),
+          // Needed for the role <select> in MemberList when the current
+          // user is OWNER. Cached at context level (see
+          // OrganizationProvider) so this is a no-op after first load
+          // on any organization page, not a per-page refetch.
+          roles.length === 0 ? fetchRoles() : Promise.resolve(roles),
+        ]);
 
         if (!cancelled) {
           setOrganization(org);
@@ -75,6 +87,13 @@ function OrganizationDetailPage() {
   const canManageMembers =
     currentMembership?.roleCode === 'OWNER' || currentMembership?.roleCode === 'ADMIN';
 
+  // Stricter gate: registration (add member), role changes, and
+  // deactivation are OWNER-only — ADMIN does not qualify here, unlike
+  // canManageMembers above (which still covers "remove member" and the
+  // settings form). Kept as a separate constant rather than folded into
+  // canManageMembers so the two permission rules can't be conflated.
+  const isOwner = currentMembership?.roleCode === 'OWNER';
+
   async function handleRemove(member) {
     try {
       await removeMember(publicUuid, member.userPublicUuid);
@@ -92,6 +111,33 @@ function OrganizationDetailPage() {
 
   function handleOrganizationUpdated(updated) {
     setOrganization(updated);
+  }
+
+  async function handleChangeRole(member, newRoleCode) {
+    try {
+      const updated = await changeMemberRole(publicUuid, member.userPublicUuid, newRoleCode);
+      setMembers((prev) =>
+        prev.map((item) => (item.userPublicUuid === updated.userPublicUuid ? updated : item))
+      );
+    } catch {
+      // Surfaced via context `error` state already (e.g. "Cannot demote
+      // the last remaining OWNER" from OrganizationService).
+    }
+  }
+
+  async function handleDeactivate() {
+    // eslint-disable-next-line no-alert
+    const confirmed = window.confirm(
+      `Deactivate "${organization.name}"? This cannot be undone from the UI.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await deactivateOrganization(publicUuid);
+      navigate('/organizations');
+    } catch {
+      // Surfaced via context `error` state already.
+    }
   }
 
   if (isLoading) return <p>Loading...</p>;
@@ -121,6 +167,29 @@ function OrganizationDetailPage() {
             <dd>{organization.status}</dd>
           </dl>
         )}
+
+        {isOwner && organization.status !== 'INACTIVE' && (
+          // OWNER-only, deliberately separate from canManageMembers —
+          // deactivation is more destructive than the settings edits
+          // above and is not delegated to ADMIN. Hidden once already
+          // INACTIVE since there's no reactivation flow yet.
+          <div className="organization-detail-page__danger-zone">
+            <h3>Danger zone</h3>
+            <button
+              type="button"
+              className="organization-detail-page__deactivate"
+              onClick={handleDeactivate}
+            >
+              Deactivate organization
+            </button>
+          </div>
+        )}
+
+        {organization.status === 'INACTIVE' && (
+          <p className="organization-detail-page__inactive-notice">
+            This organization has been deactivated.
+          </p>
+        )}
       </section>
 
       <section className="organization-detail-page__members">
@@ -128,10 +197,15 @@ function OrganizationDetailPage() {
         <MemberList
           members={members}
           canManageMembers={canManageMembers}
+          canChangeRoles={isOwner}
+          roles={roles}
           onRemove={handleRemove}
+          onChangeRole={handleChangeRole}
         />
 
-        {canManageMembers && (
+        {isOwner && (
+          // Registration is OWNER-only — canManageMembers (OWNER+ADMIN)
+          // is intentionally NOT used as the gate here, unlike before.
           <>
             <h3>Add member</h3>
             <AddMemberForm organizationPublicUuid={publicUuid} onSuccess={handleMemberAdded} />

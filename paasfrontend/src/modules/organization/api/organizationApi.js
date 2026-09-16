@@ -43,6 +43,18 @@ export async function updateOrganization(publicUuid, data) {
 }
 
 /**
+ * DELETE /api/organizations/{publicUuid}
+ * Soft-delete: sets status to "INACTIVE" server-side. No hard delete,
+ * no reactivation endpoint yet. Requires OWNER role only.
+ * @param {string} publicUuid
+ * @returns {Promise<import('../types/organization.types').OrganizationResponse>}
+ */
+export async function deactivateOrganization(publicUuid) {
+  const response = await httpClient.delete(`/organizations/${publicUuid}`);
+  return response.data;
+}
+
+/**
  * GET /api/organizations
  * Lists organizations the current authenticated user belongs to.
  * @returns {Promise<import('../types/organization.types').OrganizationResponse[]>}
@@ -65,7 +77,8 @@ export async function listRoles() {
 
 /**
  * POST /api/organizations/{publicUuid}/members
- * Requires OWNER/ADMIN role. Identifies the user to add by email.
+ * Requires OWNER role only (not ADMIN — decided 2026, registration is
+ * OWNER-exclusive). Identifies the user to add by email.
  * @param {string} publicUuid
  * @param {import('../types/organization.types').OrganizationMemberRequest} data
  * @returns {Promise<import('../types/organization.types').OrganizationMemberResponse>}
@@ -84,6 +97,23 @@ export async function addMember(publicUuid, data) {
  */
 export async function removeMember(publicUuid, userPublicUuid) {
   await httpClient.delete(`/organizations/${publicUuid}/members/${userPublicUuid}`);
+}
+
+/**
+ * PATCH /api/organizations/{publicUuid}/members/{userPublicUuid}
+ * Requires OWNER role only (not ADMIN). Only `roleCode` is read from
+ * the body for this operation — `userEmail` is ignored.
+ * @param {string} publicUuid
+ * @param {string} userPublicUuid
+ * @param {{ roleCode: string }} data
+ * @returns {Promise<import('../types/organization.types').OrganizationMemberResponse>}
+ */
+export async function changeMemberRole(publicUuid, userPublicUuid, data) {
+  const response = await httpClient.patch(
+    `/organizations/${publicUuid}/members/${userPublicUuid}`,
+    data
+  );
+  return response.data;
 }
 
 /**

@@ -3,10 +3,12 @@ import {
   createOrganization as createOrganizationApi,
   getOrganization as getOrganizationApi,
   updateOrganization as updateOrganizationApi,
+  deactivateOrganization as deactivateOrganizationApi,
   listMyOrganizations as listMyOrganizationsApi,
   listRoles as listRolesApi,
   addMember as addMemberApi,
   removeMember as removeMemberApi,
+  changeMemberRole as changeMemberRoleApi,
   listMembers as listMembersApi,
 } from '../api/organizationApi';
 import { OrganizationContext } from './OrganizationContext';
@@ -160,6 +162,29 @@ export function OrganizationProvider({ children }) {
     }
   }
 
+    // Soft-delete. Keeps the org in `organizations` with status
+  // "INACTIVE" rather than removing it from the list — callers (e.g.
+  // OrganizationDetailPage) decide what to do next (navigate away,
+  // show a banner, etc.). Does NOT clear activeOrgUuid automatically:
+  // if the deactivated org was active, it stays selected but inactive
+  // until the caller picks another one via selectOrganization.
+  async function deactivateOrganization(publicUuid) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const updated = await deactivateOrganizationApi(publicUuid);
+      setOrganizations((prev) =>
+        prev.map((org) => (org.publicUuid === publicUuid ? updated : org))
+      );
+      return updated;
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to deactivate organization');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   function selectOrganization(publicUuid) {
     setActiveOrgUuid(publicUuid);
   }
@@ -198,6 +223,18 @@ export function OrganizationProvider({ children }) {
       throw err;
     }
   }
+  
+    // Same non-storing pattern as addMember/removeMember: role changes
+  // are per-org-detail-page, not cached at context level.
+  async function changeMemberRole(publicUuid, userPublicUuid, roleCode) {
+    setError(null);
+    try {
+      return await changeMemberRoleApi(publicUuid, userPublicUuid, { roleCode });
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to change member role');
+      throw err;
+    }
+  }
 
   const value = {
     organizations,
@@ -211,10 +248,12 @@ export function OrganizationProvider({ children }) {
     createOrganization,
     fetchOrganization,
     updateOrganization,
+    deactivateOrganization,
     selectOrganization,
     fetchMembers,
     addMember,
     removeMember,
+    changeMemberRole,
   };
 
   return (

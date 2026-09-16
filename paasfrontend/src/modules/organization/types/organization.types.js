@@ -18,19 +18,19 @@
  * @property {string} publicUuid - UUID
  * @property {string} name
  * @property {string} slug
- * @property {string} status
+ * @property {string} status - "ACTIVE" | "SUSPENDED" | "INACTIVE" (INACTIVE = soft-deleted, set via deactivateOrganization; no reactivation flow yet)
  * @property {string} createdAt - ISO 8601 (OffsetDateTime)
  * @property {string} updatedAt - ISO 8601 (OffsetDateTime)
  */
 
 /**
- * Request body for POST /api/organizations/{publicUuid}/members.
- * NOTE: the backend DTO comment also describes reusing this shape for a
- * role-change operation (roleCode only), but no such endpoint currently
- * exists in OrganizationController — only add (POST) and remove (DELETE)
- * are exposed. Keep this typedef scoped to "add member" until that changes.
+ * Request body for POST /api/organizations/{publicUuid}/members (add
+ * member — both fields required) and for PATCH
+ * /api/organizations/{publicUuid}/members/{userPublicUuid} (change role
+ * — only roleCode is read by the backend; userEmail is ignored/unused
+ * for that call, safe to omit). Both endpoints are OWNER-only.
  * @typedef {Object} OrganizationMemberRequest
- * @property {string} userEmail
+ * @property {string} [userEmail] - required for add, ignored for role change
  * @property {string} roleCode
  */
 
