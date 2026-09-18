@@ -82,6 +82,18 @@ public class BillingService {
                 .toList();
     }
 
+    // Admin-facing listing — every status included (ACTIVE, INACTIVE,
+    // ARCHIVED). Needed so an admin panel can find and reactivate a
+    // hidden plan, which listActivePlans() would never surface.
+    // No endpoint wired to this yet — waiting on the platform_role
+    // decision (see handoff doc) before exposing it, since this must
+    // never be reachable by a regular client.
+    public List<PlanResponseDTO> listAllPlans() {
+        return planRepository.findAll().stream()
+                .map(this::toPlanResponseDTO)
+                .toList();
+    }
+
     @Transactional
     public PlanResponseDTO updatePlan(UUID publicUuid, PlanRequestDTO request) {
         Plan plan = findPlanOrThrow(publicUuid);

@@ -654,6 +654,12 @@ a:hover {
   margin: 0;
 }
 
+.organization-detail-page__billing-locked {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
 /* ---------- DashboardPage ---------- */
 .dashboard-page {
   max-width: 480px;

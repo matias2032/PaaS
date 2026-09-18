@@ -259,9 +259,22 @@ async function handleDeactivate() {
 
             <section className="organization-detail-page__billing">
         <h2>Billing</h2>
-        <Link to={`/organizations/${publicUuid}/subscription`}>
-          Manage subscription
-        </Link>
+        {isOrganizationActive ? (
+          <Link to={`/organizations/${publicUuid}/subscription`}>
+            Manage subscription
+          </Link>
+        ) : (
+          // Same reasoning as the settings/members gates above: while
+          // INACTIVE, subscription management is expected to be
+          // rejected by the (future) billing backend the same way
+          // updateOrganization/addMember/etc. are today. This hides
+          // the entry point for UX, but is not itself the guard — the
+          // real protection has to live server-side once BILLING
+          // exists (mirror requireActiveOrganization there).
+          <p className="organization-detail-page__billing-locked">
+            Subscription management is unavailable while this organization is inactive.
+          </p>
+        )}
       </section>
     </div>
   );
