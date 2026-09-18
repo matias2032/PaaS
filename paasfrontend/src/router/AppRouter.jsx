@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import authRoutes from '../modules/auth/AuthRoutes';
 import organizationRoutes from '../modules/organization/OrganizationRoutes';
+import billingRoutes from '../modules/billing/BillingRoutes';
 import ProtectedRoute from '../shared/layout/ProtectedRoute';
 import DashboardPage from '../modules/common/pages/DashboardPage';
 import ProfilePage from '../modules/auth/pages/ProfilePage';
@@ -8,9 +9,10 @@ import ProfilePage from '../modules/auth/pages/ProfilePage';
 const allRoutes = [
   ...authRoutes,
   ...organizationRoutes,
+  ...billingRoutes,
   // Future modules append their routes here. Fully-protected modules
-  // (billing, project, service) should follow organizationRoutes'
-  // pattern of self-wrapping each element in <ProtectedRoute>.
+  // should follow organizationRoutes/billingRoutes' pattern of
+  // self-wrapping each element in <ProtectedRoute>.
 ];
 
 function AppRouter() {

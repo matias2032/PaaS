@@ -58,6 +58,8 @@ public class SecurityConfig {
                             "/api/auth/{publicUuid}",
                             "/api/auth/forgot-password",
                             "/api/auth/reset-password",
+                            "/api/plans",
+                            "/api/plans/{publicUuid}",
                             "/error"
                     ).permitAll()
                     .anyRequest().authenticated()

@@ -11,6 +11,11 @@ import com.dev58.paasbackend.organization.exception.OrganizationMemberNotFoundEx
 import com.dev58.paasbackend.organization.exception.OrganizationNotFoundException;
 import com.dev58.paasbackend.organization.exception.OrganizationSlugAlreadyExistsException;
 import com.dev58.paasbackend.organization.exception.PermissionDeniedException;
+import com.dev58.paasbackend.billing.exception.PlanNotFoundException;
+import com.dev58.paasbackend.billing.exception.PlanPriceNotFoundException;
+import com.dev58.paasbackend.billing.exception.PlanSlugAlreadyExistsException;
+import com.dev58.paasbackend.billing.exception.SubscriptionAlreadyExistsException;
+import com.dev58.paasbackend.billing.exception.SubscriptionNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -81,11 +86,18 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
     }
 
-    @ExceptionHandler({OrganizationSlugAlreadyExistsException.class, OrganizationMemberAlreadyExistsException.class, OrganizationInactiveException.class})
+    @ExceptionHandler({OrganizationSlugAlreadyExistsException.class, OrganizationMemberAlreadyExistsException.class, OrganizationInactiveException.class, PlanSlugAlreadyExistsException.class, SubscriptionAlreadyExistsException.class})
     public ResponseEntity<ErrorResponseDTO> handleOrganizationConflict(
             RuntimeException ex, HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler({PlanNotFoundException.class, PlanPriceNotFoundException.class, SubscriptionNotFoundException.class})
+    public ResponseEntity<ErrorResponseDTO> handleBillingNotFound(
+            RuntimeException ex, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

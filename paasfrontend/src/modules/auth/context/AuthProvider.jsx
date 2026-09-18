@@ -30,23 +30,32 @@ function persistAuth(auth) {
 }
 
 export function AuthProvider({ children }) {
-  const [auth, setAuth] = useState(loadStoredAuth);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+const [auth, setAuth] = useState(() => {
+  const stored = loadStoredAuth();
+  // Sincroniza o tokenStore em fase de render (não em efeito), para que
+  // já esteja pronto antes de qualquer filho montar e disparar pedidos
+  // no seu próprio useEffect — evita o primeiro fetch pós-F5 sair sem
+  // Authorization mesmo havendo sessão válida em localStorage.
+  if (stored?.token) {
+    setAccessToken(stored.token);
+  } else {
+    clearAccessToken();
+  }
+  return stored;
+});
+const [isLoading, setIsLoading] = useState(false);
+const [error, setError] = useState(null);
 
-  useEffect(() => {
-    persistAuth(auth);
-
-    // Mantém o tokenStore (em memória, usado pelo httpClient) sincronizado
-    // com o estado de auth. Isto também restaura o token em memória após
-    // um refresh de página (F5), já que tokenStore começa sempre vazio
-    // mas o localStorage pode ter uma sessão válida.
-    if (auth?.token) {
-      setAccessToken(auth.token);
-    } else {
-      clearAccessToken();
-    }
-  }, [auth]);
+useEffect(() => {
+  persistAuth(auth);
+  // Sync do tokenStore continua aqui para login/logout/refresh de perfil
+  // (mudanças de auth *depois* da montagem inicial).
+  if (auth?.token) {
+    setAccessToken(auth.token);
+  } else {
+    clearAccessToken();
+  }
+}, [auth]);
 
   // CORREÇÃO ADICIONADA: Escuta o evento global de não autorizado para limpar a sessão
   useEffect(() => {

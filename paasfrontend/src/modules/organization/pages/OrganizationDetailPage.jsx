@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate,Link } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useOrganization } from '../hooks/useOrganization';
 import OrganizationForm from '../components/OrganizationForm';
@@ -255,6 +255,13 @@ async function handleDeactivate() {
             <AddMemberForm organizationPublicUuid={publicUuid} onSuccess={handleMemberAdded} />
           </>
         )}
+      </section>
+
+            <section className="organization-detail-page__billing">
+        <h2>Billing</h2>
+        <Link to={`/organizations/${publicUuid}/subscription`}>
+          Manage subscription
+        </Link>
       </section>
     </div>
   );

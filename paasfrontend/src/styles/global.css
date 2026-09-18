@@ -855,3 +855,277 @@ a:hover {
 .organization-list-page__no-results-clear:hover {
   text-decoration: underline;
 }
+
+/* ==========================================================
+   BILLING MODULE
+   PlanCard, SubscriptionSummary, SubscriptionHistoryList,
+   PlansPage, SubscriptionPage. Pages are wider content pages
+   (like OrganizationDetailPage/OrganizationListPage), not
+   auth-style cards — billing is a working screen, not a form.
+   ========================================================== */
+
+/* ---------- PlansPage ---------- */
+.plans-page {
+  max-width: 960px;
+  margin: var(--space-6) auto;
+  padding: 0 var(--space-4);
+}
+
+.plans-page__current-notice {
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.plans-page__error {
+  color: var(--color-error);
+}
+
+.plans-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+/* ---------- PlanCard ---------- */
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.plan-card__header {
+  margin-bottom: var(--space-3);
+}
+
+.plan-card__name {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.plan-card__description {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.plan-card__limits {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  background: var(--color-canvas);
+  border-radius: var(--radius);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-1) var(--space-3);
+}
+
+.plan-card__prices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.plan-card__price-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.plan-card__price-row:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.plan-card__price-cycle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+.plan-card__price-amount {
+  flex: 1;
+  font-weight: 600;
+}
+
+.plan-card__subscribe {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1) var(--space-3);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-inverse);
+  background: var(--color-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: background-color var(--transition-fast);
+}
+
+.plan-card__subscribe:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+/* Disabled here doubles as "current plan" state, not just a loading
+   lock — distinct from the generic .btn:disabled opacity treatment
+   because this needs to read as a status, not a temporarily-blocked
+   action. */
+.plan-card__subscribe:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+  color: var(--color-success);
+  background: var(--color-canvas);
+  border-color: var(--color-border);
+}
+
+/* ---------- SubscriptionPage ---------- */
+.subscription-page {
+  max-width: 640px;
+  margin: var(--space-6) auto;
+  padding: 0 var(--space-4);
+}
+
+.subscription-page__error {
+  color: var(--color-error);
+}
+
+.subscription-page__current,
+.subscription-page__history {
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.subscription-page__plans-link {
+  display: inline-block;
+  margin-top: var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+/* ---------- SubscriptionSummary ---------- */
+.subscription-summary__empty {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.subscription-summary__plan-name {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.subscription-summary__details {
+  margin: 0 0 var(--space-4);
+}
+
+.subscription-summary__details dt {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-top: var(--space-3);
+}
+
+.subscription-summary__details dt:first-child {
+  margin-top: 0;
+}
+
+.subscription-summary__details dd {
+  margin: 0;
+}
+
+.subscription-summary__cancel {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-error);
+  background: transparent;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.subscription-summary__cancel:hover:not(:disabled) {
+  background: var(--color-error);
+  color: var(--color-text-inverse);
+}
+
+.subscription-summary__cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ---------- SubscriptionHistoryList ---------- */
+.subscription-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.subscription-history-list__empty {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.subscription-history-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.subscription-history-list__item:last-child {
+  border-bottom: none;
+}
+
+.subscription-history-list__plan-name {
+  font-weight: 600;
+  flex: 1 1 30%;
+}
+
+.subscription-history-list__cycle {
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+.subscription-history-list__status {
+  font-weight: 600;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-canvas);
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+.subscription-history-list__period {
+  color: var(--color-text-muted);
+  flex: 1 1 auto;
+  text-align: right;
+}
