@@ -49,6 +49,13 @@ public class OrganizationController {
         return organizationService.deactivateOrganization(publicUuid, currentUser.getIdUser());
     }
 
+        @PostMapping("/{publicUuid}/reactivate")
+    public OrganizationResponseDTO reactivate(
+            @PathVariable UUID publicUuid,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return organizationService.reactivateOrganization(publicUuid, currentUser.getIdUser());
+    }
+
     @GetMapping
     public List<OrganizationResponseDTO> listMine(
             @AuthenticationPrincipal AuthenticatedUser currentUser) {

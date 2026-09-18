@@ -4,6 +4,7 @@ import {
   getOrganization as getOrganizationApi,
   updateOrganization as updateOrganizationApi,
   deactivateOrganization as deactivateOrganizationApi,
+  reactivateOrganization as reactivateOrganizationApi,
   listMyOrganizations as listMyOrganizationsApi,
   listRoles as listRolesApi,
   addMember as addMemberApi,
@@ -185,6 +186,27 @@ export function OrganizationProvider({ children }) {
     }
   }
 
+  // Mirrors deactivateOrganization exactly (same list-merge, same
+  // "caller decides what happens next" pattern) — kept as a separate
+  // function rather than a toggle so each call site stays explicit
+  // about which direction it's requesting.
+  async function reactivateOrganization(publicUuid) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const updated = await reactivateOrganizationApi(publicUuid);
+      setOrganizations((prev) =>
+        prev.map((org) => (org.publicUuid === publicUuid ? updated : org))
+      );
+      return updated;
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to reactivate organization');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   function selectOrganization(publicUuid) {
     setActiveOrgUuid(publicUuid);
   }
@@ -249,6 +271,7 @@ export function OrganizationProvider({ children }) {
     fetchOrganization,
     updateOrganization,
     deactivateOrganization,
+    reactivateOrganization,
     selectOrganization,
     fetchMembers,
     addMember,

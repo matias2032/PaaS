@@ -31,6 +31,9 @@ function OrganizationCard({ organization, isActive = false, onSelect }) {
     >
       <span className="organization-card__name">{organization.name}</span>
       <span className="organization-card__slug">{organization.slug}</span>
+      <span className="organization-card__members">
+        {organization.memberCount} {organization.memberCount === 1 ? 'member' : 'members'}
+      </span>
       <span className="organization-card__status">{organization.status}</span>
     </div>
   );

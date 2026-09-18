@@ -19,4 +19,8 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
     Optional<OrganizationMember> findByOrganization_IdOrganizationAndUser_IdUser(Long idOrganization, Long idUser);
 
     boolean existsByOrganization_IdOrganizationAndUser_IdUser(Long idOrganization, Long idUser);
+
+    // Used to populate OrganizationResponseDTO.memberCount — a plain
+    // COUNT query, not a full row fetch.
+    long countByOrganization_IdOrganization(Long idOrganization);
 }

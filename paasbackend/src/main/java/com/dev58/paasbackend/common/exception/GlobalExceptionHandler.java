@@ -5,6 +5,7 @@ import com.dev58.paasbackend.auth.exception.InvalidResetTokenException;
 import com.dev58.paasbackend.auth.exception.UserAlreadyExistsException;
 import com.dev58.paasbackend.auth.exception.UserNotFoundException;
 import com.dev58.paasbackend.common.dto.ErrorResponseDTO;
+import com.dev58.paasbackend.organization.exception.OrganizationInactiveException;
 import com.dev58.paasbackend.organization.exception.OrganizationMemberAlreadyExistsException;
 import com.dev58.paasbackend.organization.exception.OrganizationMemberNotFoundException;
 import com.dev58.paasbackend.organization.exception.OrganizationNotFoundException;
@@ -80,7 +81,7 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
     }
 
-    @ExceptionHandler({OrganizationSlugAlreadyExistsException.class, OrganizationMemberAlreadyExistsException.class})
+    @ExceptionHandler({OrganizationSlugAlreadyExistsException.class, OrganizationMemberAlreadyExistsException.class, OrganizationInactiveException.class})
     public ResponseEntity<ErrorResponseDTO> handleOrganizationConflict(
             RuntimeException ex, HttpServletRequest request
     ) {

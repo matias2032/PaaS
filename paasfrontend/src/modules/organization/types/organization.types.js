@@ -18,7 +18,15 @@
  * @property {string} publicUuid - UUID
  * @property {string} name
  * @property {string} slug
- * @property {string} status - "ACTIVE" | "SUSPENDED" | "INACTIVE" (INACTIVE = soft-deleted, set via deactivateOrganization; no reactivation flow yet)
+ * @property {string} status - "ACTIVE" | "SUSPENDED" | "INACTIVE". INACTIVE
+ *   is set via deactivateOrganization and cleared via
+ *   reactivateOrganization (INACTIVE -> ACTIVE only; SUSPENDED is a
+ *   separate, platform-side concept not touched by either call — see
+ *   OrganizationService). While INACTIVE, every write on this org
+ *   (update, add/remove member, change role — including leaving the
+ *   org yourself) is rejected by the backend with 409
+ *   OrganizationInactiveException. Reads remain available.
+ * @property {number} memberCount - total members, computed server-side
  * @property {string} createdAt - ISO 8601 (OffsetDateTime)
  * @property {string} updatedAt - ISO 8601 (OffsetDateTime)
  */

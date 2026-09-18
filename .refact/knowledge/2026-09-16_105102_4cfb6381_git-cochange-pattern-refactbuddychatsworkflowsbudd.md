@@ -6,7 +6,7 @@ tags:
 - git
 - pattern
 created: 2026-09-16
-updated: 2026-09-16
+updated: 2026-09-18
 filenames:
 - .refact/buddy/chats/workflows/buddy_docs_gardener.json
 - .refact/buddy/runtime_queue.jsonl
@@ -15,7 +15,7 @@ kind: pattern
 status: proposed
 superseded_by: null
 deprecated_at: null
-review_after: 2026-09-16
+review_after: 2026-09-18
 source_chat_id: null
 created_at: 2026-09-16T08:51:02.402082200+00:00
 summary: null

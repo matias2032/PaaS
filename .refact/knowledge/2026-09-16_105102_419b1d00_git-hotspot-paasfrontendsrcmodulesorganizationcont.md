@@ -6,7 +6,7 @@ tags:
 - git
 - hotspot
 created: 2026-09-16
-updated: 2026-09-16
+updated: 2026-09-18
 filenames:
 - paasfrontend/src/modules/organization/context/OrganizationProvider.jsx
 links: []
@@ -14,7 +14,7 @@ kind: code
 status: proposed
 superseded_by: null
 deprecated_at: null
-review_after: 2026-09-16
+review_after: 2026-09-18
 source_chat_id: null
 created_at: 2026-09-16T08:51:02.483408600+00:00
 summary: null

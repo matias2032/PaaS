@@ -7,6 +7,7 @@ import com.dev58.paasbackend.organization.dto.*;
 import com.dev58.paasbackend.organization.entity.Organization;
 import com.dev58.paasbackend.organization.entity.OrganizationMember;
 import com.dev58.paasbackend.organization.entity.OrganizationRole;
+import com.dev58.paasbackend.organization.exception.OrganizationInactiveException;
 import com.dev58.paasbackend.organization.exception.OrganizationMemberNotFoundException;
 import com.dev58.paasbackend.organization.exception.OrganizationNotFoundException;
 import com.dev58.paasbackend.organization.exception.PermissionDeniedException;
@@ -94,6 +95,7 @@ public class OrganizationService {
     public OrganizationResponseDTO updateOrganization(UUID publicUuid, OrganizationRequestDTO request, Long currentUserId) {
         Organization organization = findOrganizationOrThrow(publicUuid);
         requireOwnerOrAdmin(organization, currentUserId);
+        requireActiveOrganization(organization);
 
         organization.setName(request.getName());
         // Slug intentionally not updated here — treat as immutable after
@@ -110,6 +112,7 @@ public class OrganizationService {
     public OrganizationMemberResponseDTO addMember(UUID orgPublicUuid, OrganizationMemberRequestDTO request, Long currentUserId) {
         Organization organization = findOrganizationOrThrow(orgPublicUuid);
         requireOwner(organization, currentUserId);
+        requireActiveOrganization(organization);
 
         if (request.getUserEmail() == null || request.getUserEmail().isBlank()) {
             // userEmail is no longer @NotBlank at the DTO level (shared with
@@ -144,19 +147,41 @@ public class OrganizationService {
         Organization organization = findOrganizationOrThrow(publicUuid);
         requireOwner(organization, currentUserId);
 
-        // Soft-delete: no hard delete exists. Reactivation is not exposed
-        // yet — revisit if the product needs it.
+        if ("INACTIVE".equals(organization.getStatus())) {
+            throw new IllegalArgumentException("Organization is already inactive");
+        }
+
+        // Soft-delete. Reactivation is exposed via reactivateOrganization().
         organization.setStatus("INACTIVE");
         organization = organizationRepository.save(organization);
 
         return toResponseDTO(organization);
     }
 
-        @Transactional
+    @Transactional
+    public OrganizationResponseDTO reactivateOrganization(UUID publicUuid, Long currentUserId) {
+        Organization organization = findOrganizationOrThrow(publicUuid);
+        requireOwner(organization, currentUserId);
+
+        if (!"INACTIVE".equals(organization.getStatus())) {
+            throw new IllegalArgumentException("Organization is not inactive");
+        }
+
+        // Reactivation always goes back to ACTIVE — a SUSPENDED
+        // organization (platform-side action, see handoff section 6)
+        // is a separate concept and is not touched by this method.
+        organization.setStatus("ACTIVE");
+        organization = organizationRepository.save(organization);
+
+        return toResponseDTO(organization);
+    }
+
+    @Transactional
     public OrganizationMemberResponseDTO changeMemberRole(
             UUID orgPublicUuid, UUID memberUserPublicUuid, OrganizationMemberRequestDTO request, Long currentUserId) {
         Organization organization = findOrganizationOrThrow(orgPublicUuid);
         requireOwner(organization, currentUserId);
+        requireActiveOrganization(organization);
 
         User targetUser = userRepository.findByPublicUuid(memberUserPublicUuid)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + memberUserPublicUuid));
@@ -194,6 +219,7 @@ public void removeMember(
         Long currentUserId) {
 
     Organization organization = findOrganizationOrThrow(orgPublicUuid);
+    requireActiveOrganization(organization);
 
     User targetUser = userRepository.findByPublicUuid(memberUserPublicUuid)
             .orElseThrow(() ->
@@ -274,12 +300,28 @@ public void removeMember(
         }
     }
 
+    // Blocks any write operation while the organization is INACTIVE.
+    // Reads (getOrganization, listMembers, listRoles,
+    // listOrganizationsForCurrentUser) are intentionally NOT gated by
+    // this — a member should still be able to see that their org is
+    // inactive, and the OWNER needs to see it in order to reactivate it.
+    private void requireActiveOrganization(Organization organization) {
+        if ("INACTIVE".equals(organization.getStatus())) {
+            throw new OrganizationInactiveException(
+                    "This organization is inactive; no changes are allowed until it is reactivated");
+        }
+    }
+
     private OrganizationResponseDTO toResponseDTO(Organization organization) {
+        long memberCount = organizationMemberRepository
+                .countByOrganization_IdOrganization(organization.getIdOrganization());
+
         return OrganizationResponseDTO.builder()
                 .publicUuid(organization.getPublicUuid())
                 .name(organization.getName())
                 .slug(organization.getSlug())
                 .status(organization.getStatus())
+                .memberCount(memberCount)
                 .createdAt(organization.getCreatedAt())
                 .updatedAt(organization.getUpdatedAt())
                 .build();

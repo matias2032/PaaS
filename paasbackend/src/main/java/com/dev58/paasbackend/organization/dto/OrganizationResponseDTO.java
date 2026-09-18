@@ -20,6 +20,7 @@ public class OrganizationResponseDTO {
     private String name;
     private String slug;
     private String status;
+    private long memberCount;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

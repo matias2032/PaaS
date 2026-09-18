@@ -12,8 +12,14 @@
  * can I do in this org" depends on the current user's own membership.
  *
  * `currentUserPublicUuid` is used only to determine whether the row
- * belongs to the authenticated user. Every member can leave the
- * organization themselves, regardless of role. The action is displayed
+ * belongs to the authenticated user. Any member CAN leave the
+ * organization themselves regardless of role, but only while the
+ * organization is ACTIVE — the backend rejects removeMember entirely
+ * (self or not) once the org is INACTIVE (409
+ * OrganizationInactiveException). `canLeave` carries that check in
+ * from the page (which has `organization.status`) rather than this
+ * component reaching for it itself, same reasoning as
+ * canRemoveOtherMembers/canChangeRoles below. The action is displayed
  * as "Leave" for the current user and "Remove" for another member
  * when the current user has OWNER permission.
  * row, which the page has (from the fetched member list) and this
@@ -25,11 +31,12 @@
  * roles catalog (context `roles`, GET /api/organizations/roles) so the
  * role <select> has options without this component fetching anything.
  *
- * @param {{ members: import('../types/organization.types').OrganizationMemberResponse[], currentUserPublicUuid?: string, canRemoveOtherMembers?: boolean, canChangeRoles?: boolean, roles?: import('../types/organization.types').OrganizationRole[], onRemove?: (member: import('../types/organization.types').OrganizationMemberResponse) => void, onChangeRole?: (member: import('../types/organization.types').OrganizationMemberResponse, newRoleCode: string) => void }} props
+ * @param {{ members: import('../types/organization.types').OrganizationMemberResponse[], currentUserPublicUuid?: string, canLeave?: boolean, canRemoveOtherMembers?: boolean, canChangeRoles?: boolean, roles?: import('../types/organization.types').OrganizationRole[], onRemove?: (member: import('../types/organization.types').OrganizationMemberResponse) => void, onChangeRole?: (member: import('../types/organization.types').OrganizationMemberResponse, newRoleCode: string) => void }} props
  */
 function MemberList({
   members,
   currentUserPublicUuid,
+  canLeave = false,
   canRemoveOtherMembers = false,
   canChangeRoles = false,
   roles = [],
@@ -65,8 +72,8 @@ function MemberList({
             <span className="member-list__role">{member.roleName}</span>
           )}
 
-{(member.userPublicUuid === currentUserPublicUuid ||
-  canRemoveOtherMembers) && (
+{((member.userPublicUuid === currentUserPublicUuid && canLeave) ||
+  (member.userPublicUuid !== currentUserPublicUuid && canRemoveOtherMembers)) && (
   <button
     type="button"
     className="member-list__remove"

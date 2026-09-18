@@ -44,13 +44,27 @@ export async function updateOrganization(publicUuid, data) {
 
 /**
  * DELETE /api/organizations/{publicUuid}
- * Soft-delete: sets status to "INACTIVE" server-side. No hard delete,
- * no reactivation endpoint yet. Requires OWNER role only.
+ * Soft-delete: sets status to "INACTIVE" server-side. No hard delete.
+ * Requires OWNER role only. Rejected with 409 if already INACTIVE.
  * @param {string} publicUuid
  * @returns {Promise<import('../types/organization.types').OrganizationResponse>}
  */
 export async function deactivateOrganization(publicUuid) {
   const response = await httpClient.delete(`/organizations/${publicUuid}`);
+  return response.data;
+}
+
+/**
+ * POST /api/organizations/{publicUuid}/reactivate
+ * Reverses deactivateOrganization: INACTIVE -> ACTIVE only. Requires
+ * OWNER role only. Rejected with 409 if the organization is not
+ * currently INACTIVE (e.g. already ACTIVE, or SUSPENDED — reactivation
+ * does not touch SUSPENDED, see OrganizationResponse.status).
+ * @param {string} publicUuid
+ * @returns {Promise<import('../types/organization.types').OrganizationResponse>}
+ */
+export async function reactivateOrganization(publicUuid) {
+  const response = await httpClient.post(`/organizations/${publicUuid}/reactivate`);
   return response.data;
 }
 

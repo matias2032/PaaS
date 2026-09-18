@@ -35,6 +35,7 @@ function OrganizationDetailPage() {
     removeMember,
     changeMemberRole,
     deactivateOrganization,
+    reactivateOrganization,
     error,
   } = useOrganization();
 
@@ -89,11 +90,18 @@ const canManageMembers =
   currentMembership?.roleCode === 'OWNER' || currentMembership?.roleCode === 'ADMIN';
 
 // Only OWNER can remove other members.
-// Every member can still leave the organization themselves.
 const canRemoveOtherMembers = currentMembership?.roleCode === 'OWNER';
 
-// Registration, role changes and deactivation remain OWNER-only.
+// Registration, role changes, deactivation and reactivation remain OWNER-only.
 const isOwner = currentMembership?.roleCode === 'OWNER';
+
+// Single source of truth for "is this org writable right now" — every
+// write endpoint (update, add/remove member, change role) is rejected
+// by the backend with 409 while status is INACTIVE. Any member can
+// still leave the org themselves, but only while it's ACTIVE — see
+// MemberList's canLeave note.
+const isOrganizationActive = organization.status !== 'INACTIVE';
+const canLeave = isOrganizationActive;
 
 async function handleRemove(member) {
   try {
@@ -137,10 +145,10 @@ async function handleRemove(member) {
     }
   }
 
-  async function handleDeactivate() {
+async function handleDeactivate() {
     // eslint-disable-next-line no-alert
     const confirmed = window.confirm(
-      `Deactivate "${organization.name}"? This cannot be undone from the UI.`
+      `Deactivate "${organization.name}"? No changes will be allowed on this organization until it's reactivated.`
     );
     if (!confirmed) return;
 
@@ -149,6 +157,17 @@ async function handleRemove(member) {
       navigate('/organizations');
     } catch {
       // Surfaced via context `error` state already.
+    }
+  }
+
+  async function handleReactivate() {
+    try {
+      const updated = await reactivateOrganization(publicUuid);
+      setOrganization(updated);
+    } catch {
+      // Surfaced via context `error` state already (e.g. "Organization
+      // is not inactive" if it was reactivated elsewhere in the
+      // meantime).
     }
   }
 
@@ -164,14 +183,14 @@ async function handleRemove(member) {
 
       <section className="organization-detail-page__settings">
         <h2>Settings</h2>
-        {canManageMembers ? (
+        {canManageMembers && isOrganizationActive ? (
           <OrganizationForm organization={organization} onSuccess={handleOrganizationUpdated} />
         ) : (
-          // Read-only fallback for DEVELOPER/VIEWER — this page must
-          // still be useful to them (they can reach it via
-          // OrganizationListPage regardless of role), just without the
-          // ability to mutate. Mirrors the fields OrganizationForm
-          // would otherwise expose as editable.
+          // Read-only fallback: for DEVELOPER/VIEWER regardless of
+          // status, and for anyone (OWNER/ADMIN included) once the
+          // organization is INACTIVE, since updateOrganization is
+          // rejected by the backend in that state. Mirrors the fields
+          // OrganizationForm would otherwise expose as editable.
           <dl className="organization-detail-page__readonly">
             <dt>Name</dt>
             <dd>{organization.name}</dd>
@@ -182,11 +201,10 @@ async function handleRemove(member) {
           </dl>
         )}
 
-        {isOwner && organization.status !== 'INACTIVE' && (
+        {isOwner && isOrganizationActive && (
           // OWNER-only, deliberately separate from canManageMembers —
           // deactivation is more destructive than the settings edits
-          // above and is not delegated to ADMIN. Hidden once already
-          // INACTIVE since there's no reactivation flow yet.
+          // above and is not delegated to ADMIN.
           <div className="organization-detail-page__danger-zone">
             <h3>Danger zone</h3>
             <button
@@ -199,10 +217,19 @@ async function handleRemove(member) {
           </div>
         )}
 
-        {organization.status === 'INACTIVE' && (
-          <p className="organization-detail-page__inactive-notice">
-            This organization has been deactivated.
-          </p>
+        {!isOrganizationActive && (
+          <div className="organization-detail-page__inactive-notice">
+            <p>This organization has been deactivated. No changes are allowed until it's reactivated.</p>
+            {isOwner && (
+              <button
+                type="button"
+                className="organization-detail-page__reactivate"
+                onClick={handleReactivate}
+              >
+                Reactivate organization
+              </button>
+            )}
+          </div>
         )}
       </section>
 
@@ -211,15 +238,18 @@ async function handleRemove(member) {
 <MemberList
   members={members}
   currentUserPublicUuid={user?.publicUuid}
-  canRemoveOtherMembers={canRemoveOtherMembers}
-  canChangeRoles={isOwner}
+  canLeave={canLeave}
+  canRemoveOtherMembers={canRemoveOtherMembers && isOrganizationActive}
+  canChangeRoles={isOwner && isOrganizationActive}
   roles={roles}
   onRemove={handleRemove}
   onChangeRole={handleChangeRole}
 />
-        {isOwner && (
+        {isOwner && isOrganizationActive && (
           // Registration is OWNER-only — canManageMembers (OWNER+ADMIN)
           // is intentionally NOT used as the gate here, unlike before.
+          // Also hidden while INACTIVE: addMember is rejected by the
+          // backend in that state.
           <>
             <h3>Add member</h3>
             <AddMemberForm organizationPublicUuid={publicUuid} onSuccess={handleMemberAdded} />

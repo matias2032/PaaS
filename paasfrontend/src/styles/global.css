@@ -682,3 +682,176 @@ a:hover {
 .back-button:hover {
   background: #f3f4f6;
 }
+
+/* ---------- OrganizationCard: member count ---------- */
+.organization-card__members {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ---------- OrganizationListPage: filter toolbar ---------- */
+.organization-list-page__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.organization-list-page__search {
+  flex: 1;
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast);
+}
+
+.organization-list-page__search:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.organization-list-page__filters-toggle {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.organization-list-page__filters-toggle:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.organization-list-page__filters-toggle[aria-expanded="true"] {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-canvas);
+}
+
+.organization-list-page__filters-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-inverse);
+  background: var(--color-primary);
+  border-radius: 999px;
+}
+
+/* ---------- OrganizationListPage: filters panel ---------- */
+.organization-list-page__filters-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-5);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.organization-list-page__filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.organization-list-page__filter-group label,
+.organization-list-page__filter-group-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.organization-list-page__filter-group select {
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.organization-list-page__range-inputs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.organization-list-page__range-inputs input {
+  width: 100px;
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.organization-list-page__range-inputs input:focus,
+.organization-list-page__filter-group select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.organization-list-page__clear-filters {
+  cursor: pointer;
+  align-self: flex-end;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  padding: var(--space-2) 0;
+}
+
+.organization-list-page__clear-filters:hover {
+  text-decoration: underline;
+}
+
+/* ---------- OrganizationListPage: empty/no-results states ---------- */
+.organization-list-page__error {
+  color: var(--color-error);
+}
+
+.organization-list-page__no-results {
+  color: var(--color-text-muted);
+}
+
+.organization-list-page__no-results-clear {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.organization-list-page__no-results-clear:hover {
+  text-decoration: underline;
+}
