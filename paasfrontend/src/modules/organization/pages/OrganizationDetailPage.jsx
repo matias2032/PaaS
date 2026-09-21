@@ -276,8 +276,39 @@ async function handleDeactivate() {
           </p>
         )}
       </section>
+
+      <section className="organization-detail-page__projects">
+        <h2>Projects</h2>
+        {isOrganizationActive ? (
+          <Link to={`/organizations/${publicUuid}/projects`}>View projects</Link>
+        ) : (
+          // ProjectService now has requireActiveOrganization on every
+          // write (create/update/archive/reactivate), mirroring
+          // OrganizationService/addMember. Reads (listProjects) are
+          // still technically reachable server-side while INACTIVE,
+          // but the whole entry point is hidden here anyway — a
+          // member has no useful action to take on this page while
+          // the org can't be written to, same call as Billing above.
+          <p className="organization-detail-page__projects-locked">
+            Projects are unavailable while this organization is inactive.
+          </p>
+        )}
+      </section>
+
+      <section className="organization-detail-page__git-connections">
+        <h2>Git connections</h2>
+        {isOrganizationActive ? (
+          <Link to={`/organizations/${publicUuid}/git-connections`}>Manage Git connections</Link>
+        ) : (
+          // Same reasoning as Projects above — createGitConnection/
+          // revokeGitConnection are both requireActiveOrganization-gated
+          // server-side now.
+          <p className="organization-detail-page__git-connections-locked">
+            Git connections are unavailable while this organization is inactive.
+          </p>
+        )}
+      </section>
     </div>
   );
 }
-
 export default OrganizationDetailPage;

@@ -16,6 +16,9 @@ import com.dev58.paasbackend.billing.exception.PlanPriceNotFoundException;
 import com.dev58.paasbackend.billing.exception.PlanSlugAlreadyExistsException;
 import com.dev58.paasbackend.billing.exception.SubscriptionAlreadyExistsException;
 import com.dev58.paasbackend.billing.exception.SubscriptionNotFoundException;
+import com.dev58.paasbackend.project.exception.GitConnectionNotFoundException;
+import com.dev58.paasbackend.project.exception.GitProviderNotFoundException;
+import com.dev58.paasbackend.project.exception.ProjectNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -95,6 +98,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({PlanNotFoundException.class, PlanPriceNotFoundException.class, SubscriptionNotFoundException.class})
     public ResponseEntity<ErrorResponseDTO> handleBillingNotFound(
+            RuntimeException ex, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler({ProjectNotFoundException.class, GitProviderNotFoundException.class, GitConnectionNotFoundException.class})
+    public ResponseEntity<ErrorResponseDTO> handleProjectNotFound(
             RuntimeException ex, HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
