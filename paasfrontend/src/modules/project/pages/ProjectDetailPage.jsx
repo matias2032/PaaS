@@ -21,7 +21,6 @@ function ProjectDetailPage() {
     projectsError,
     fetchProject,
     updateProject,
-    archiveProject,
     reactivateProject,
   } = useProject();
 
@@ -106,16 +105,6 @@ function ProjectDetailPage() {
     }
   }
 
-  async function handleArchive() {
-    setActionError(null);
-    try {
-      const updated = await archiveProject(publicUuid);
-      setProject(updated);
-    } catch (err) {
-      setActionError(err?.response?.data?.message || 'Failed to archive project');
-    }
-  }
-
   async function handleReactivate() {
     setActionError(null);
     try {
@@ -177,9 +166,6 @@ function ProjectDetailPage() {
             <div className="project-detail-page__actions">
               <button type="button" onClick={() => setIsEditing(true)}>
                 Edit
-              </button>
-              <button type="button" disabled={isProjectsLoading} onClick={handleArchive}>
-                Archive
               </button>
             </div>
           )}

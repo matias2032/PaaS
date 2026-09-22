@@ -48,7 +48,12 @@ function ProjectCard({
       {project.description && <p className="project-card__description">{project.description}</p>}
 
       <div className="project-card__actions">
-        <button type="button" className="project-card__open" onClick={() => onOpen?.(project)}>
+        <button
+          type="button"
+          className="project-card__open"
+          disabled={isArchived}
+          onClick={() => onOpen?.(project)}
+        >
           Open
         </button>
 

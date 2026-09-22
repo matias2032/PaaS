@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useProject } from '../hooks/useProject';
 import { useOrganization } from '../../organization/hooks/useOrganization';
@@ -16,7 +16,6 @@ function ProjectsListPage() {
     isProjectsLoading,
     projectsError,
     fetchProjects,
-    createProject,
     archiveProject,
     reactivateProject,
   } = useProject();
@@ -29,9 +28,6 @@ function ProjectsListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [actionError, setActionError] = useState(null);
-
-  const [form, setForm] = useState({ name: '', slug: '', description: '' });
-  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,26 +72,6 @@ function ProjectsListPage() {
   // are all requireActiveOrganization-gated server-side now.
   const isOrganizationActive = organization?.status !== 'INACTIVE';
 
-  function handleFormChange(event) {
-    const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }
-
-  async function handleCreate(event) {
-    event.preventDefault();
-    setActionError(null);
-    setIsCreating(true);
-    try {
-      const created = await createProject(orgPublicUuid, form);
-      setProjects((prev) => [...prev, created]);
-      setForm({ name: '', slug: '', description: '' });
-    } catch (err) {
-      setActionError(err?.response?.data?.message || 'Failed to create project');
-    } finally {
-      setIsCreating(false);
-    }
-  }
-
   async function handleArchive(project) {
     setActionError(null);
     try {
@@ -127,8 +103,18 @@ function ProjectsListPage() {
 
   return (
     <div className="projects-list-page">
-      <BackButton />
-      <h1>Projects{organization ? ` for ${organization.name}` : ''}</h1>
+      <header className="projects-list-page__header">
+        <BackButton />
+        <h1>Projects{organization ? ` for ${organization.name}` : ''}</h1>
+        {isOwner && isOrganizationActive && (
+          <Link
+            to={`/organizations/${orgPublicUuid}/projects/new`}
+            className="projects-list-page__create-link"
+          >
+            New project
+          </Link>
+        )}
+      </header>
 
       {displayError && <p className="projects-list-page__error">{displayError}</p>}
 
@@ -136,27 +122,6 @@ function ProjectsListPage() {
         <p className="projects-list-page__inactive-notice">
           This organization is inactive — no new projects can be created until it's reactivated.
         </p>
-      )}
-
-      {isOwner && isOrganizationActive && (
-        <form className="projects-list-page__create-form" onSubmit={handleCreate}>
-          <h2>New project</h2>
-          <label>
-            Name
-            <input name="name" value={form.name} onChange={handleFormChange} required />
-          </label>
-          <label>
-            Slug
-            <input name="slug" value={form.slug} onChange={handleFormChange} required />
-          </label>
-          <label>
-            Description
-            <textarea name="description" value={form.description} onChange={handleFormChange} />
-          </label>
-          <button type="submit" disabled={isCreating || isProjectsLoading}>
-            Create project
-          </button>
-        </form>
       )}
 
       {projects.length === 0 ? (

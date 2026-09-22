@@ -6,7 +6,7 @@ tags:
 - git
 - pattern
 created: 2026-09-21
-updated: 2026-09-21
+updated: 2026-09-22
 filenames:
 - .refact/buddy/memory_ops.jsonl
 - paasfrontend/src/modules/organization/pages/OrganizationDetailPage.jsx
@@ -15,7 +15,7 @@ kind: pattern
 status: proposed
 superseded_by: null
 deprecated_at: null
-review_after: 2026-09-21
+review_after: 2026-09-22
 source_chat_id: null
 created_at: 2026-09-21T08:55:48.693921500+00:00
 summary: null

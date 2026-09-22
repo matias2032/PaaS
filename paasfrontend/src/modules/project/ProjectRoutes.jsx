@@ -1,5 +1,6 @@
 import ProtectedRoute from '../../shared/layout/ProtectedRoute';
 import ProjectsListPage from './pages/ProjectsListPage';
+import CreateProjectPage from './pages/CreateProjectPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import GitConnectionsPage from './pages/GitConnectionsPage';
 
@@ -9,6 +10,14 @@ const projectRoutes = [
     element: (
       <ProtectedRoute>
         <ProjectsListPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/organizations/:orgPublicUuid/projects/new',
+    element: (
+      <ProtectedRoute>
+        <CreateProjectPage />
       </ProtectedRoute>
     ),
   },
