@@ -1,3 +1,4 @@
+# application-prod.yaml
 spring:
   application:
     name: paasbackend
@@ -31,6 +32,8 @@ jwt:
 app:
   registration:
     require-email-verification: true
+  encryption:
+    key: ${ENCRYPTION_KEY}
 
 # TODO (production): sending the actual activation email is not
 # implemented yet. When this feature is picked up:

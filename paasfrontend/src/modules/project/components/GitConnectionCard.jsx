@@ -45,6 +45,16 @@ function GitConnectionCard({ connection, canManage = true, onRevoke, isBusy = fa
         <dd>{connection.externalAccountName || '—'}</dd>
       </dl>
 
+      <span
+        className={
+          connection.hasAccessToken
+            ? 'git-connection-card__access-badge git-connection-card__access-badge--configured'
+            : 'git-connection-card__access-badge git-connection-card__access-badge--not-configured'
+        }
+      >
+        {connection.hasAccessToken ? 'API access configured' : 'No API access token'}
+      </span>
+
       {/* Always visible, not just on the create form — explains why
           this looks like manually-typed text instead of data fetched
           from the actual provider. */}

@@ -17,6 +17,10 @@ public class GitConnectionResponseDTO {
     private String gitProviderCode;
     private String externalAccountId;
     private String externalAccountName;
+    // Whether an access token is stored — never the token itself.
+    // Lets the UI show "API access: configured" without ever
+    // exposing or re-encrypting anything client-side.
+    private Boolean hasAccessToken;
     private String status;
     private OffsetDateTime tokenExpiresAt;
     private OffsetDateTime createdAt;

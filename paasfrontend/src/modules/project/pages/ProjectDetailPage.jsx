@@ -197,6 +197,17 @@ function ProjectDetailPage() {
           Git connections are unavailable while this organization is inactive.
         </p>
       )}
+
+      {/* Independent of isOrganizationActive — reads (listing services
+          of a project) stay allowed even while the organization is
+          INACTIVE, unlike git-connections above which is a write-gated
+          feature. See SERVICE module handoff §1.2. */}
+      <Link
+        to={`/projects/${project.publicUuid}/services`}
+        className="project-detail-page__services-link"
+      >
+        View services for this project
+      </Link>
     </div>
   );
 }

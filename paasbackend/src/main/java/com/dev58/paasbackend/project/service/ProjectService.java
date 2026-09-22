@@ -1,5 +1,6 @@
 package com.dev58.paasbackend.project.service;
 
+import com.dev58.paasbackend.common.security.CryptoService;
 import com.dev58.paasbackend.organization.entity.Organization;
 import com.dev58.paasbackend.organization.entity.OrganizationMember;
 import com.dev58.paasbackend.organization.exception.OrganizationInactiveException;
@@ -36,6 +37,7 @@ public class ProjectService {
     private final GitConnectionRepository gitConnectionRepository;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
+    private final CryptoService cryptoService;
 
     // ---- Project: Create ----
 
@@ -167,6 +169,10 @@ public class ProjectService {
                 .gitProvider(provider)
                 .externalAccountId(request.getExternalAccountId())
                 .externalAccountName(request.getExternalAccountName())
+                .accessTokenEncrypted(
+                        request.getAccessToken() != null && !request.getAccessToken().isBlank()
+                                ? cryptoService.encrypt(request.getAccessToken())
+                                : null)
                 .build();
         connection = gitConnectionRepository.save(connection);
 
@@ -194,6 +200,11 @@ public class ProjectService {
         requireActiveOrganization(connection.getOrganization());
 
         connection.setStatus("REVOKED");
+        // Clear stored credentials on revoke — a revoked connection has
+        // no legitimate reason to keep an encrypted token around, even
+        // though it's already unusable by application logic elsewhere.
+        connection.setAccessTokenEncrypted(null);
+        connection.setRefreshTokenEncrypted(null);
         connection = gitConnectionRepository.save(connection);
 
         return toConnectionResponseDTO(connection);
@@ -257,6 +268,7 @@ public class ProjectService {
                 .gitProviderCode(connection.getGitProvider().getCode())
                 .externalAccountId(connection.getExternalAccountId())
                 .externalAccountName(connection.getExternalAccountName())
+                .hasAccessToken(connection.getAccessTokenEncrypted() != null)
                 .status(connection.getStatus())
                 .tokenExpiresAt(connection.getTokenExpiresAt())
                 .createdAt(connection.getCreatedAt())

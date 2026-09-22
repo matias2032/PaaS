@@ -41,6 +41,7 @@ function GitConnectionsPage() {
     gitProviderCode: '',
     externalAccountId: '',
     externalAccountName: '',
+    accessToken: '',
   });
   const [isCreating, setIsCreating] = useState(false);
 
@@ -112,7 +113,7 @@ function GitConnectionsPage() {
     try {
       const created = await createGitConnection(orgPublicUuid, form);
       setConnections((prev) => [...prev, created]);
-      setForm({ gitProviderCode: '', externalAccountId: '', externalAccountName: '' });
+      setForm({ gitProviderCode: '', externalAccountId: '', externalAccountName: '', accessToken: '' });
     } catch (err) {
       setActionError(err?.response?.data?.message || 'Failed to create git connection');
     } finally {
@@ -205,6 +206,22 @@ function GitConnectionsPage() {
               onChange={handleFormChange}
             />
           </label>
+
+          <label>
+            Access token <span className="git-connections-page__optional-tag">(optional)</span>
+            <input
+              type="password"
+              name="accessToken"
+              value={form.accessToken}
+              onChange={handleFormChange}
+              autoComplete="off"
+              placeholder="Personal access token"
+            />
+          </label>
+          <p className="git-connections-page__token-hint">
+            Stored encrypted and never shown again after saving. Leave blank if you just want to
+            register the account without granting API access yet.
+          </p>
 
           <button
             type="submit"

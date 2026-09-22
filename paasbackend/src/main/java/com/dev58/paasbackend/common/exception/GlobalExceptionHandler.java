@@ -19,6 +19,15 @@ import com.dev58.paasbackend.billing.exception.SubscriptionNotFoundException;
 import com.dev58.paasbackend.project.exception.GitConnectionNotFoundException;
 import com.dev58.paasbackend.project.exception.GitProviderNotFoundException;
 import com.dev58.paasbackend.project.exception.ProjectNotFoundException;
+import com.dev58.paasbackend.service.exception.DeploymentException;
+import com.dev58.paasbackend.service.exception.DeploymentNotFoundException;
+import com.dev58.paasbackend.service.exception.DomainNotFoundException;
+import com.dev58.paasbackend.service.exception.EnvironmentVariableNotFoundException;
+import com.dev58.paasbackend.service.exception.ServiceBuildConfigNotFoundException;
+import com.dev58.paasbackend.service.exception.ServiceNotFoundException;
+import com.dev58.paasbackend.service.exception.ServiceRepositoryNotFoundException;
+import com.dev58.paasbackend.service.exception.ServiceResourceConfigNotFoundException;
+import com.dev58.paasbackend.service.exception.ServiceTypeNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -108,6 +117,35 @@ public class GlobalExceptionHandler {
             RuntimeException ex, HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler({
+            ServiceTypeNotFoundException.class,
+            ServiceNotFoundException.class,
+            ServiceRepositoryNotFoundException.class,
+            ServiceBuildConfigNotFoundException.class,
+            ServiceResourceConfigNotFoundException.class,
+            EnvironmentVariableNotFoundException.class,
+            DomainNotFoundException.class,
+            DeploymentNotFoundException.class
+    })
+    public ResponseEntity<ErrorResponseDTO> handleServiceNotFound(
+            RuntimeException ex, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(DeploymentException.class)
+    public ResponseEntity<ErrorResponseDTO> handleDeploymentException(
+            DeploymentException ex, HttpServletRequest request
+    ) {
+        // Today the only thrower is createDeployment()'s trigger_type
+        // validation — a client input error, hence 400. When this
+        // module gains a real CoolifyClient and starts wrapping actual
+        // deployment failures (build/API errors) with a cause, this
+        // mapping will likely need to split: no cause -> 400 (bad
+        // input), cause present -> 502 (upstream Coolify failure).
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

@@ -1,3 +1,4 @@
+# application-dev.yaml
 spring:
   application:
     name: paasbackend
@@ -33,3 +34,7 @@ app:
     # Local/dev: skip email verification so new accounts are usable
     # immediately, without needing a working mail server.
     require-email-verification: false
+  encryption:
+    # Dev-only key, safe to commit — never reused in staging/prod.
+    # Generated with: openssl rand -base64 32
+    key: ${ENCRYPTION_KEY:mEPXBWjBRvS2bjUMyi3WTW9n3V4NVQQDsbT3U4MMYpM=}

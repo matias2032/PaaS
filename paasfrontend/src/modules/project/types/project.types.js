@@ -62,6 +62,7 @@
  * @property {string} gitProviderCode
  * @property {string} externalAccountId
  * @property {string} externalAccountName
+ * @property {boolean} hasAccessToken - true if an access token is stored (never the token itself)
  * @property {string} status - "ACTIVE" | "EXPIRED" | "REVOKED" | "INACTIVE"
  * @property {string|null} tokenExpiresAt - ISO 8601 (OffsetDateTime), null for now
  *   since token fields aren't actually populated without real OAuth

@@ -1135,3 +1135,588 @@ a:hover {
   flex: 1 1 auto;
   text-align: right;
 }
+
+
+/* ==========================================================
+   PROJECT MODULE
+   Minimal styling only — ProjectsListPage, ProjectDetailPage,
+   GitConnectionsPage still rely on the generic .btn/.text-field
+   classes and unstyled markup elsewhere in these pages. This
+   block only covers the two navigation links on
+   ProjectDetailPage, which otherwise fall back to the bare <a>
+   rule at the top of this file.
+   ========================================================== */
+
+.project-detail-page__git-link,
+.project-detail-page__services-link {
+  display: inline-block;
+  margin-top: var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.project-detail-page__git-link + .project-detail-page__services-link {
+  margin-left: var(--space-4);
+}
+
+.project-detail-page__git-link-locked {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin: var(--space-4) 0 0;
+}
+
+/* ---------- GitConnectionsPage: create form additions ---------- */
+.git-connections-page__optional-tag {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.git-connections-page__token-hint {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ---------- GitConnectionCard: API access badge ---------- */
+.git-connection-card__access-badge {
+  align-self: flex-start;
+  margin-bottom: var(--space-3);
+  padding: 2px var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  border-radius: var(--radius);
+}
+
+.git-connection-card__access-badge--configured {
+  color: var(--color-success);
+  background: var(--color-canvas);
+}
+
+.git-connection-card__access-badge--not-configured {
+  color: var(--color-text-muted);
+  background: var(--color-canvas);
+}
+
+
+/* ==========================================================
+   SERVICE MODULE
+   ServiceCard, ServiceForm, ServicesListPage, CreateServicePage,
+   ServiceDetailPage (hub), plus the 6 sub-resource pages
+   (repository, build-config, resource-config, environment
+   variables, domains, deployments). ServicesListPage/
+   ServiceDetailPage are wide content pages like
+   OrganizationDetailPage/PlansPage; CreateServicePage and every
+   sub-resource page reuse the generic auth-style card wrapper.
+   ========================================================== */
+
+.create-service-page {
+  max-width: 480px;
+  margin: var(--space-6) auto;
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+/* ---------- ServiceForm ---------- */
+.service-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.service-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.service-form__field label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.service-form__field input,
+.service-form__field select {
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast);
+}
+
+.service-form__field input:focus,
+.service-form__field select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.service-form__field input:disabled,
+.service-form__field select:disabled {
+  background: var(--color-canvas);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.service-form__field--checkbox label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 400;
+  color: var(--color-text);
+}
+
+.service-form__hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.service-form__error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+/* ---------- ServicesListPage ---------- */
+.services-list-page {
+  max-width: 960px;
+  margin: var(--space-6) auto;
+  padding: 0 var(--space-4);
+}
+
+.services-list-page__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.services-list-page__header h1 {
+  flex: 1;
+  margin: 0;
+}
+
+.services-list-page__create-link {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.services-list-page__error {
+  color: var(--color-error);
+}
+
+.services-list-page__inactive-notice {
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
+  border-left: 3px solid var(--color-text-muted);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.services-list-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+/* ---------- ServiceCard ---------- */
+.service-card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.service-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.service-card__name {
+  flex: 1;
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.service-card__status {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  background: var(--color-canvas);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.service-card__status--archived {
+  color: var(--color-error);
+}
+
+.service-card__type {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.service-card__slug {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.service-card__auto-deploy-badge {
+  align-self: flex-start;
+  margin-bottom: var(--space-3);
+  padding: 2px var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-success);
+  background: var(--color-canvas);
+  border-radius: var(--radius);
+}
+
+.service-card__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+
+/* ---------- ServiceDetailPage (hub) ---------- */
+.service-detail-page {
+  max-width: 720px;
+  margin: var(--space-6) auto;
+  padding: 0 var(--space-4);
+}
+
+.service-detail-page__status {
+  display: inline-block;
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  text-transform: capitalize;
+}
+
+.service-detail-page__status--archived {
+  color: var(--color-error);
+}
+
+.service-detail-page__error {
+  color: var(--color-error);
+}
+
+.service-detail-page__slug,
+.service-detail-page__type,
+.service-detail-page__auto-deploy {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.service-detail-page__edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.service-detail-page__edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.service-detail-page__edit-form input[type='text'],
+.service-detail-page__edit-form input:not([type='checkbox']) {
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-weight: 400;
+}
+
+.service-detail-page__actions {
+  margin: var(--space-3) 0;
+}
+
+.service-detail-page__inactive-notice {
+  padding: var(--space-2) var(--space-3);
+  margin-top: var(--space-4);
+  border-left: 3px solid var(--color-text-muted);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.service-detail-page__sub-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.service-detail-page__sub-nav a {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.service-detail-page__sub-nav a:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* ---------- Shared sub-resource page shell ----------
+   ServiceRepositoryPage, ServiceBuildConfigPage,
+   ServiceResourceConfigPage, ServiceEnvironmentVariablesPage,
+   ServiceDomainsPage, ServiceDeploymentsPage all share this
+   layout, error, form and notice treatment — one block instead
+   of six near-identical repeats. */
+.service-repository-page,
+.service-build-config-page,
+.service-resource-config-page,
+.service-env-vars-page,
+.service-domains-page,
+.service-deployments-page {
+  max-width: 640px;
+  margin: var(--space-6) auto;
+  padding: 0 var(--space-4);
+}
+
+.service-repository-page__error,
+.service-build-config-page__error,
+.service-resource-config-page__error,
+.service-env-vars-page__error,
+.service-domains-page__error,
+.service-deployments-page__error {
+  color: var(--color-error);
+}
+
+.service-repository-page__form,
+.service-build-config-page__form,
+.service-resource-config-page__form,
+.service-env-vars-page__form,
+.service-domains-page__form,
+.service-deployments-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.service-repository-page__form h2,
+.service-build-config-page__form h2,
+.service-resource-config-page__form h2,
+.service-env-vars-page__form h2,
+.service-domains-page__form h2,
+.service-deployments-page__form h2 {
+  margin: 0 0 var(--space-2);
+}
+
+.service-repository-page__form label,
+.service-build-config-page__form label,
+.service-resource-config-page__form label,
+.service-env-vars-page__form label,
+.service-domains-page__form label,
+.service-deployments-page__form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.service-repository-page__form input,
+.service-repository-page__form select,
+.service-build-config-page__form input,
+.service-resource-config-page__form input,
+.service-env-vars-page__form input:not([type='checkbox']),
+.service-domains-page__form input:not([type='checkbox']),
+.service-deployments-page__form input,
+.service-deployments-page__form select {
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-weight: 400;
+}
+
+.service-repository-page__form input:focus,
+.service-repository-page__form select:focus,
+.service-build-config-page__form input:focus,
+.service-resource-config-page__form input:focus,
+.service-env-vars-page__form input:focus,
+.service-domains-page__form input:focus,
+.service-deployments-page__form input:focus,
+.service-deployments-page__form select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.service-repository-page__form input:disabled,
+.service-repository-page__form select:disabled,
+.service-build-config-page__form input:disabled,
+.service-resource-config-page__form input:disabled {
+  background: var(--color-canvas);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* Checkbox rows (isSecret, isPrimary, autoDeploy edit form) sit
+   inline rather than adopting the stacked label-above-input shape
+   used for text inputs above. */
+.service-env-vars-page__form label:has(input[type='checkbox']),
+.service-domains-page__form label:has(input[type='checkbox']) {
+  flex-direction: row;
+  align-items: center;
+  font-weight: 400;
+  color: var(--color-text);
+}
+
+.service-repository-page__readonly-notice,
+.service-build-config-page__readonly-notice,
+.service-resource-config-page__readonly-notice,
+.service-env-vars-page__readonly-notice,
+.service-domains-page__readonly-notice,
+.service-deployments-page__readonly-notice {
+  padding: var(--space-2) var(--space-3);
+  margin-top: var(--space-4);
+  border-left: 3px solid var(--color-text-muted);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.service-env-vars-page__value-notice,
+.service-deployments-page__notice {
+  padding: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-3);
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-canvas);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ---------- List rows shared across env vars / domains / deployments ---------- */
+.service-env-vars-page__list,
+.service-domains-page__list,
+.service-deployments-page__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.service-env-vars-page__row,
+.service-domains-page__row,
+.service-deployments-page__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.service-env-vars-page__row:last-child,
+.service-domains-page__row:last-child,
+.service-deployments-page__row:last-child {
+  border-bottom: none;
+}
+
+.service-env-vars-page__key,
+.service-domains-page__hostname {
+  font-weight: 600;
+  flex: 1 1 auto;
+}
+
+.service-env-vars-page__secret-badge,
+.service-domains-page__primary-badge {
+  padding: 2px var(--space-2);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-canvas);
+  border-radius: var(--radius);
+  text-transform: capitalize;
+}
+
+.service-domains-page__primary-badge {
+  color: var(--color-success);
+}
+
+.service-domains-page__status {
+  color: var(--color-text-muted);
+}
+
+.service-env-vars-page__row button,
+.service-domains-page__row button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.service-env-vars-page__row button:hover,
+.service-domains-page__row button:hover {
+  text-decoration: underline;
+}
+
+.service-deployments-page__status {
+  font-weight: 600;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-canvas);
+  color: var(--color-text-muted);
+}
+
+.service-deployments-page__trigger,
+.service-deployments-page__branch,
+.service-deployments-page__commit,
+.service-deployments-page__message {
+  color: var(--color-text-muted);
+}
+

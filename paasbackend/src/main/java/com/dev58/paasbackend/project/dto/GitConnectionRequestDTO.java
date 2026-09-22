@@ -20,4 +20,14 @@ public class GitConnectionRequestDTO {
     private String externalAccountId;
 
     private String externalAccountName;
+
+    // Optional Personal Access Token, plaintext over the wire only —
+    // never stored or returned as-is. Encrypted with CryptoService
+    // before persisting (see ProjectService.createGitConnection) and
+    // never echoed back in GitConnectionResponseDTO, same pattern as
+    // EnvironmentVariableRequestDTO.value. Left optional rather than
+    // @NotBlank: a connection can still be registered "manually" with
+    // just account info, same as before this change, for organizations
+    // that don't need real API access yet.
+    private String accessToken;
 }
