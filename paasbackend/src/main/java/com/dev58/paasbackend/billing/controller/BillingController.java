@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,58 +33,55 @@ public class BillingController {
 
     // ---- Plans ----
 
-    @PostMapping("/api/plans")
-    @ResponseStatus(HttpStatus.CREATED)
-    public PlanResponseDTO createPlan(@Valid @RequestBody PlanRequestDTO request) {
-        return billingService.createPlan(request);
-    }
+@PostMapping("/api/plans")
+@ResponseStatus(HttpStatus.CREATED)
+@PreAuthorize("hasRole('PLATFORM_ADMIN')")
+public PlanResponseDTO createPlan(@Valid @RequestBody PlanRequestDTO request) {
+    return billingService.createPlan(request);
+}
 
-    @GetMapping("/api/plans")
-    public List<PlanResponseDTO> listActivePlans() {
-        return billingService.listActivePlans();
-    }
+@PutMapping("/api/plans/{publicUuid}")
+@PreAuthorize("hasRole('PLATFORM_ADMIN')")
+public PlanResponseDTO updatePlan(
+        @PathVariable UUID publicUuid,
+        @Valid @RequestBody PlanRequestDTO request) {
+    return billingService.updatePlan(publicUuid, request);
+}
 
-    @GetMapping("/api/plans/{publicUuid}")
-    public PlanResponseDTO getPlan(@PathVariable UUID publicUuid) {
-        return billingService.getPlan(publicUuid);
-    }
+@DeleteMapping("/api/plans/{publicUuid}")
+@PreAuthorize("hasRole('PLATFORM_ADMIN')")
+public PlanResponseDTO deactivatePlan(@PathVariable UUID publicUuid) {
+    return billingService.deactivatePlan(publicUuid);
+}
 
-    @PutMapping("/api/plans/{publicUuid}")
-    public PlanResponseDTO updatePlan(
-            @PathVariable UUID publicUuid,
-            @Valid @RequestBody PlanRequestDTO request) {
-        return billingService.updatePlan(publicUuid, request);
-    }
+@PostMapping("/api/plans/{publicUuid}/reactivate")
+@PreAuthorize("hasRole('PLATFORM_ADMIN')")
+public PlanResponseDTO reactivatePlan(@PathVariable UUID publicUuid) {
+    return billingService.reactivatePlan(publicUuid);
+}
 
-    @DeleteMapping("/api/plans/{publicUuid}")
-    public PlanResponseDTO deactivatePlan(@PathVariable UUID publicUuid) {
-        return billingService.deactivatePlan(publicUuid);
-    }
+@PostMapping("/api/plans/{publicUuid}/archive")
+@PreAuthorize("hasRole('PLATFORM_ADMIN')")
+public PlanResponseDTO archivePlan(@PathVariable UUID publicUuid) {
+    return billingService.archivePlan(publicUuid);
+}
 
-    @PostMapping("/api/plans/{publicUuid}/reactivate")
-    public PlanResponseDTO reactivatePlan(@PathVariable UUID publicUuid) {
-        return billingService.reactivatePlan(publicUuid);
-    }
+@PutMapping("/api/plans/{publicUuid}/resource-limits")
+@PreAuthorize("hasRole('PLATFORM_ADMIN')")
+public PlanResourceLimitResponseDTO setResourceLimits(
+        @PathVariable UUID publicUuid,
+        @Valid @RequestBody PlanResourceLimitRequestDTO request) {
+    return billingService.setResourceLimits(publicUuid, request);
+}
 
-    @PostMapping("/api/plans/{publicUuid}/archive")
-    public PlanResponseDTO archivePlan(@PathVariable UUID publicUuid) {
-        return billingService.archivePlan(publicUuid);
-    }
-
-    @PutMapping("/api/plans/{publicUuid}/resource-limits")
-    public PlanResourceLimitResponseDTO setResourceLimits(
-            @PathVariable UUID publicUuid,
-            @Valid @RequestBody PlanResourceLimitRequestDTO request) {
-        return billingService.setResourceLimits(publicUuid, request);
-    }
-
-    @PostMapping("/api/plans/{publicUuid}/prices")
-    @ResponseStatus(HttpStatus.CREATED)
-    public PlanPriceResponseDTO addPrice(
-            @PathVariable UUID publicUuid,
-            @Valid @RequestBody PlanPriceRequestDTO request) {
-        return billingService.addPrice(publicUuid, request);
-    }
+@PostMapping("/api/plans/{publicUuid}/prices")
+@ResponseStatus(HttpStatus.CREATED)
+@PreAuthorize("hasRole('PLATFORM_ADMIN')")
+public PlanPriceResponseDTO addPrice(
+        @PathVariable UUID publicUuid,
+        @Valid @RequestBody PlanPriceRequestDTO request) {
+    return billingService.addPrice(publicUuid, request);
+}
 
     // ---- Subscriptions ----
 

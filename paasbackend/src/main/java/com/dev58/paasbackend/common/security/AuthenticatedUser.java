@@ -19,18 +19,31 @@ public class AuthenticatedUser implements UserDetails {
     private final String email;
     private final String passwordHash;
     private final boolean enabled;
+    private final String platformRole;
 
-    public AuthenticatedUser(Long idUser, UUID publicUuid, String email, String passwordHash, boolean enabled) {
+    public AuthenticatedUser(
+            Long idUser, UUID publicUuid, String email, String passwordHash,
+            boolean enabled, String platformRole) {
         this.idUser = idUser;
         this.publicUuid = publicUuid;
         this.email = email;
         this.passwordHash = passwordHash;
         this.enabled = enabled;
+        this.platformRole = platformRole;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"));
+        // Every authenticated user gets ROLE_USER (unchanged — existing
+        // isAuthenticated() checks elsewhere keep working). On top of
+        // that, one extra authority mirroring platformRole exactly —
+        // "ROLE_CUSTOMER" | "ROLE_SUPPORT" | "ROLE_PLATFORM_ADMIN" |
+        // "ROLE_PLATFORM_OWNER" — so @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        // on an InfrastructureController method works without extra mapping.
+        return List.of(
+                new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"),
+                new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + platformRole)
+        );
     }
 
     @Override

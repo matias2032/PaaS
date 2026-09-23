@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 import java.util.UUID;
 
@@ -54,6 +54,24 @@ public class OrganizationController {
             @PathVariable UUID publicUuid,
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
         return organizationService.reactivateOrganization(publicUuid, currentUser.getIdUser());
+    }
+
+    // Platform-side suspension, distinct from the self-service
+    // deactivate/reactivate above. currentUser isn't passed to the
+    // service here — there's no organization membership to check,
+    // authorization is entirely @PreAuthorize.
+    @PostMapping("/{publicUuid}/suspend")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public OrganizationResponseDTO suspend(
+            @PathVariable UUID publicUuid,
+            @Valid @RequestBody OrganizationSuspendRequestDTO request) {
+        return organizationService.suspendOrganization(publicUuid, request.getReason());
+    }
+
+    @PostMapping("/{publicUuid}/lift-suspension")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public OrganizationResponseDTO liftSuspension(@PathVariable UUID publicUuid) {
+        return organizationService.liftSuspension(publicUuid);
     }
 
     @GetMapping

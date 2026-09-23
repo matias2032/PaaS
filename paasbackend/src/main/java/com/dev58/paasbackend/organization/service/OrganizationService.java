@@ -16,6 +16,9 @@ import com.dev58.paasbackend.organization.exception.OrganizationSlugAlreadyExist
 import com.dev58.paasbackend.organization.repository.OrganizationMemberRepository;
 import com.dev58.paasbackend.organization.repository.OrganizationRepository;
 import com.dev58.paasbackend.organization.repository.OrganizationRoleRepository;
+import com.dev58.paasbackend.organization.exception.OrganizationNotSuspendedException;
+
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -177,6 +180,41 @@ public class OrganizationService {
         return toResponseDTO(organization);
     }
 
+        // Platform-side action — no requireOwner/requireMembership here,
+    // authorization is @PreAuthorize("hasRole('PLATFORM_ADMIN')") on the
+    // controller. There's no "owning organization" to check membership
+    // against; the platform is acting on the organization, not a member
+    // of it.
+    @Transactional
+    public OrganizationResponseDTO suspendOrganization(UUID publicUuid, String reason) {
+        Organization organization = findOrganizationOrThrow(publicUuid);
+
+        if ("SUSPENDED".equals(organization.getStatus())) {
+            throw new IllegalArgumentException("Organization is already suspended");
+        }
+
+        organization.setStatus("SUSPENDED");
+        organization.setSuspensionReason(reason);
+        organization = organizationRepository.save(organization);
+
+        return toResponseDTO(organization);
+    }
+
+    @Transactional
+    public OrganizationResponseDTO liftSuspension(UUID publicUuid) {
+        Organization organization = findOrganizationOrThrow(publicUuid);
+
+        if (!"SUSPENDED".equals(organization.getStatus())) {
+            throw new OrganizationNotSuspendedException("Organization is not suspended: " + publicUuid);
+        }
+
+        organization.setStatus("ACTIVE");
+        organization.setSuspensionReason(null);
+        organization = organizationRepository.save(organization);
+
+        return toResponseDTO(organization);
+    }
+
     @Transactional
     public OrganizationMemberResponseDTO changeMemberRole(
             UUID orgPublicUuid, UUID memberUserPublicUuid, OrganizationMemberRequestDTO request, Long currentUserId) {
@@ -301,15 +339,22 @@ public void removeMember(
         }
     }
 
-    // Blocks any write operation while the organization is INACTIVE.
-    // Reads (getOrganization, listMembers, listRoles,
+    // Blocks any write operation while the organization is INACTIVE or
+    // SUSPENDED. Reads (getOrganization, listMembers, listRoles,
     // listOrganizationsForCurrentUser) are intentionally NOT gated by
     // this — a member should still be able to see that their org is
-    // inactive, and the OWNER needs to see it in order to reactivate it.
+    // inactive/suspended, and the OWNER needs to see it in order to
+    // reactivate it (SUSPENDED can only be lifted platform-side, though —
+    // see liftSuspension).
     private void requireActiveOrganization(Organization organization) {
-        if ("INACTIVE".equals(organization.getStatus())) {
+        String status = organization.getStatus();
+        if ("INACTIVE".equals(status)) {
             throw new OrganizationInactiveException(
                     "This organization is inactive; no changes are allowed until it is reactivated");
+        }
+        if ("SUSPENDED".equals(status)) {
+            throw new OrganizationInactiveException(
+                    "This organization is suspended; no changes are allowed until the suspension is lifted");
         }
     }
 
@@ -322,6 +367,7 @@ public void removeMember(
                 .name(organization.getName())
                 .slug(organization.getSlug())
                 .status(organization.getStatus())
+                .suspensionReason(organization.getSuspensionReason())
                 .memberCount(memberCount)
                 .createdAt(organization.getCreatedAt())
                 .updatedAt(organization.getUpdatedAt())

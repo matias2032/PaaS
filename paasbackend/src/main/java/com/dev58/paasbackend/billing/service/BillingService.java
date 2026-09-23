@@ -20,6 +20,7 @@ import com.dev58.paasbackend.organization.exception.OrganizationNotFoundExceptio
 import com.dev58.paasbackend.organization.exception.PermissionDeniedException;
 import com.dev58.paasbackend.organization.repository.OrganizationMemberRepository;
 import com.dev58.paasbackend.organization.repository.OrganizationRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +55,7 @@ public class BillingService {
     // ---- Plan: Create/Read/Update ----
 
     @Transactional
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResponseDTO createPlan(PlanRequestDTO request) {
         if (planRepository.existsBySlug(request.getSlug())) {
             throw new PlanSlugAlreadyExistsException("Slug already in use: " + request.getSlug());
@@ -88,6 +90,7 @@ public class BillingService {
     // No endpoint wired to this yet — waiting on the platform_role
     // decision (see handoff doc) before exposing it, since this must
     // never be reachable by a regular client.
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public List<PlanResponseDTO> listAllPlans() {
         return planRepository.findAll().stream()
                 .map(this::toPlanResponseDTO)
@@ -95,6 +98,7 @@ public class BillingService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResponseDTO updatePlan(UUID publicUuid, PlanRequestDTO request) {
         Plan plan = findPlanOrThrow(publicUuid);
 
@@ -108,6 +112,7 @@ public class BillingService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResponseDTO deactivatePlan(UUID publicUuid) {
         Plan plan = findPlanOrThrow(publicUuid);
         plan.setStatus("INACTIVE");
@@ -115,6 +120,7 @@ public class BillingService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResponseDTO reactivatePlan(UUID publicUuid) {
         Plan plan = findPlanOrThrow(publicUuid);
         plan.setStatus("ACTIVE");
@@ -123,6 +129,7 @@ public class BillingService {
 
     // Terminal — ao contrário de deactivate/reactivate, não há "un-archive".
     @Transactional
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResponseDTO archivePlan(UUID publicUuid) {
         Plan plan = findPlanOrThrow(publicUuid);
         plan.setStatus("ARCHIVED");
@@ -132,6 +139,7 @@ public class BillingService {
     // ---- Plan resource limits ----
 
     @Transactional
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResourceLimitResponseDTO setResourceLimits(UUID planPublicUuid, PlanResourceLimitRequestDTO request) {
         Plan plan = findPlanOrThrow(planPublicUuid);
 
@@ -154,6 +162,7 @@ public class BillingService {
     // ---- Plan prices ----
 
     @Transactional
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanPriceResponseDTO addPrice(UUID planPublicUuid, PlanPriceRequestDTO request) {
         Plan plan = findPlanOrThrow(planPublicUuid);
         OffsetDateTime now = OffsetDateTime.now();

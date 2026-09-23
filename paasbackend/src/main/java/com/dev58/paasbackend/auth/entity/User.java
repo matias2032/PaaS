@@ -51,6 +51,9 @@ private String email;
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
+    @Column(name = "platform_role", nullable = false, length = 20)
+    private String platformRole;
+
     @Column(name = "email_verified_at")
     private OffsetDateTime emailVerifiedAt;
 
@@ -65,13 +68,15 @@ private String email;
         if (publicUuid == null) {
             publicUuid = UUID.randomUUID();
         }
-        // Fail-safe default: if status wasn't explicitly set by the
-        // caller (AuthService.register() always sets it), default to
-        // the more restrictive state rather than ACTIVE. The real
-        // decision lives in AuthService, driven by the
-        // app.registration.require-email-verification property.
         if (status == null) {
             status = "PENDING_VERIFICATION";
+        }
+        // Every user starts as CUSTOMER. Promotion to SUPPORT/
+        // PLATFORM_ADMIN/PLATFORM_OWNER is a deliberate manual action
+        // (createStaffUser/updatePlatformRole, or a direct UPDATE) —
+        // never set here.
+        if (platformRole == null) {
+            platformRole = "CUSTOMER";
         }
         OffsetDateTime now = OffsetDateTime.now();
         createdAt = now;

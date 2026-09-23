@@ -13,4 +13,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByPublicUuid(UUID publicUuid);
 
     boolean existsByEmail(String email);
+
+    // Usado pela guarda do último PLATFORM_OWNER em
+    // AuthService.updatePlatformRole() — precisa de saber quantos
+    // owners existem antes de aceitar uma demoção.
+    long countByPlatformRole(String platformRole);
 }

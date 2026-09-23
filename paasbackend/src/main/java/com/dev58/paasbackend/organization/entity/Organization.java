@@ -37,6 +37,11 @@ public class Organization {
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
+    // Only set when status = SUSPENDED (platform-side action). Cleared
+    // when liftSuspension() runs. Null in every other state.
+    @Column(name = "suspension_reason")
+    private String suspensionReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

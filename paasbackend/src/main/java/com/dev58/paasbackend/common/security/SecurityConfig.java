@@ -3,6 +3,9 @@ package com.dev58.paasbackend.common.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +21,11 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity // enables @PreAuthorize on controller methods —
+                       // first real use: AuthController's staff-creation/
+                       // role-update endpoints, then InfrastructureController
+                       // and BillingController.listAllPlans() later, all
+                       // gated with @PreAuthorize("hasRole('PLATFORM_ADMIN')")
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -26,6 +34,21 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    // Linear platform-staff hierarchy — mirrors the CHECK constraint
+    // order in V2__add_platform_role_to_users.sql exactly. A
+    // PLATFORM_OWNER passes any @PreAuthorize("hasRole('SUPPORT')")
+    // check automatically, without needing hasAnyRole(...) everywhere.
+    // `static` is required here: RoleHierarchy must be available before
+    // Spring's method-security infrastructure beans are created.
+    @Bean
+    static RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.fromHierarchy("""
+                ROLE_PLATFORM_OWNER > ROLE_PLATFORM_ADMIN
+                ROLE_PLATFORM_ADMIN > ROLE_SUPPORT
+                ROLE_SUPPORT > ROLE_CUSTOMER
+                """);
     }
 
     @Bean

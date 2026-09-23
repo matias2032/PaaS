@@ -31,6 +31,11 @@ import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.UUID;
+import com.dev58.paasbackend.auth.dto.CreateStaffUserRequestDTO;
+import com.dev58.paasbackend.auth.dto.UpdatePlatformRoleRequestDTO;
+import com.dev58.paasbackend.auth.exception.InsufficientPlatformRoleException;
+import com.dev58.paasbackend.auth.exception.LastPlatformOwnerException;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -49,8 +54,35 @@ public class AuthService {
     // TODO comment in application-prod.yml for what's still missing
     // (actually sending the activation email) before this can be
     // safely turned on in production.
-    @Value("${app.registration.require-email-verification:false}")
+
+        @Value("${app.registration.require-email-verification:false}")
     private boolean requireEmailVerification;
+
+    // Placeholder para um futuro fluxo de activação por email dedicado
+    // a contas de staff. Fica sempre false por agora (não há serviço de
+    // email para staff também) — ver createStaffUser(). Propositadamente
+    // separado de app.registration.require-email-verification: a
+    // activação de staff pode acabar por precisar de regras diferentes
+    // da do registo público.
+    @Value("${app.staff.require-email-verification:false}")
+    private boolean requireStaffEmailVerification;
+
+    // Espelha a ordem da CHECK constraint em
+    // V2__add_platform_role_to_users.sql e do RoleHierarchy em
+    // SecurityConfig — mantido aqui também porque a guarda de
+    // escalonamento (regra 5, secção 2 do handoff) precisa de comparar
+    // ranks numericamente, não só de "X implica Y" (isso é o que o
+    // RoleHierarchy do Spring já faz, mas só em tempo de autorização).
+    private static final List<String> PLATFORM_ROLE_HIERARCHY =
+            List.of("CUSTOMER", "SUPPORT", "PLATFORM_ADMIN", "PLATFORM_OWNER");
+
+    private int rankOf(String platformRole) {
+        int rank = PLATFORM_ROLE_HIERARCHY.indexOf(platformRole);
+        if (rank == -1) {
+            throw new IllegalArgumentException("Invalid platform role: " + platformRole);
+        }
+        return rank;
+    }
 
     @Transactional
     public AuthResponseDTO register(AuthRequestDTO request) {
@@ -128,6 +160,92 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
 
         User saved = userRepository.save(user);
+
+        return toResponseDTO(saved, null);
+    }
+
+        @Transactional
+    public AuthResponseDTO createStaffUser(String actingUserEmail, CreateStaffUserRequestDTO request) {
+        User actingUser = userRepository.findByEmail(actingUserEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if ("CUSTOMER".equals(request.getPlatformRole())) {
+            // CUSTOMER não é um papel de staff válido — para isso já
+            // existe o registo público (regra 6, secção 2 do handoff).
+            throw new IllegalArgumentException(
+                    "CUSTOMER is not a valid role for createStaffUser — use public registration instead");
+        }
+
+        if (rankOf(request.getPlatformRole()) > rankOf(actingUser.getPlatformRole())) {
+            // Guarda de escalonamento (regra 5): só se pode atribuir um
+            // papel igual ou inferior ao próprio.
+            throw new InsufficientPlatformRoleException(
+                    "Cannot create a staff user with a platform role higher than your own");
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new UserAlreadyExistsException("A user with this email already exists");
+        }
+
+        User staffUser = User.builder()
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(request.getEmail())
+                .phone(request.getPhone())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                // Contas de staff criadas por um admin são implicitamente
+                // confiadas — ao contrário do auto-registo anónimo, não
+                // ficam sujeitas a requireEmailVerification. Sem serviço
+                // de activação por email para staff, fica sempre ACTIVE
+                // por agora; requireStaffEmailVerification já está ligado
+                // e pronto a activar quando esse fluxo existir.
+                .status(requireStaffEmailVerification ? "PENDING_VERIFICATION" : "ACTIVE")
+                .platformRole(request.getPlatformRole())
+                .build();
+
+        User saved = userRepository.save(staffUser);
+
+        return toResponseDTO(saved, null);
+    }
+
+    @Transactional
+    public AuthResponseDTO updatePlatformRole(
+            String actingUserEmail, UUID targetPublicUuid, UpdatePlatformRoleRequestDTO request) {
+
+        User actingUser = userRepository.findByEmail(actingUserEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        User targetUser = userRepository.findByPublicUuid(targetPublicUuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        String newRole = request.getPlatformRole();
+
+        if (rankOf(newRole) > rankOf(actingUser.getPlatformRole())) {
+            // Mesma guarda de escalonamento — aplica-se tanto a criar
+            // como a promover/despromover um utilizador existente.
+            throw new InsufficientPlatformRoleException(
+                    "Cannot assign a platform role higher than your own");
+        }
+
+        boolean isDemotingAnOwner = "PLATFORM_OWNER".equals(targetUser.getPlatformRole())
+                && !"PLATFORM_OWNER".equals(newRole);
+
+        if (isDemotingAnOwner) {
+            long ownerCount = userRepository.countByPlatformRole("PLATFORM_OWNER");
+            if (ownerCount <= 1) {
+                // Tem de existir sempre pelo menos um PLATFORM_OWNER —
+                // aplica-se quer o owner se esteja a auto-despromover,
+                // quer esteja a ser despromovido por outro owner
+                // (confirmado no handoff: "deve existir pelo menos um
+                // owner para que o owner actual destitua ou seja
+                // destituído por terceiros").
+                throw new LastPlatformOwnerException(
+                        "Cannot remove the last remaining PLATFORM_OWNER");
+            }
+        }
+
+        targetUser.setPlatformRole(newRole);
+        User saved = userRepository.save(targetUser);
 
         return toResponseDTO(saved, null);
     }
@@ -212,6 +330,7 @@ public class AuthService {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .status(user.getStatus())
+                .platformRole(user.getPlatformRole())
                 .emailVerifiedAt(user.getEmailVerifiedAt())
                 .createdAt(user.getCreatedAt())
                 .token(token)

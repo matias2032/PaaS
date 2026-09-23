@@ -32,7 +32,8 @@ public UserDetails loadUserByUsername(String email) throws UsernameNotFoundExcep
             user.getPublicUuid(),
             user.getEmail(),
             user.getPasswordHash(),
-            "ACTIVE".equals(user.getStatus())
+            "ACTIVE".equals(user.getStatus()),
+            user.getPlatformRole()
     );
 }
 }

@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import com.dev58.paasbackend.auth.dto.ForgotPasswordRequestDTO;
 import com.dev58.paasbackend.auth.dto.MessageResponseDTO;
 import com.dev58.paasbackend.auth.dto.ResetPasswordRequestDTO;
+import com.dev58.paasbackend.auth.dto.CreateStaffUserRequestDTO;
+import com.dev58.paasbackend.auth.dto.UpdatePlatformRoleRequestDTO;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.UUID;
 
@@ -74,6 +77,28 @@ public class AuthController {
             @Valid @RequestBody ResetPasswordRequestDTO request
     ) {
         MessageResponseDTO response = authService.resetPassword(request);
+        return ResponseEntity.ok(response);
+    }
+
+        @PostMapping("/staff")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ResponseEntity<AuthResponseDTO> createStaffUser(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody CreateStaffUserRequestDTO request
+    ) {
+        AuthResponseDTO response = authService.createStaffUser(userDetails.getUsername(), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PatchMapping("/{publicUuid}/platform-role")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ResponseEntity<AuthResponseDTO> updatePlatformRole(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID publicUuid,
+            @Valid @RequestBody UpdatePlatformRoleRequestDTO request
+    ) {
+        AuthResponseDTO response = authService.updatePlatformRole(
+                userDetails.getUsername(), publicUuid, request);
         return ResponseEntity.ok(response);
     }
 }

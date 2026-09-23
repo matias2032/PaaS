@@ -30,6 +30,13 @@ public class AuthResponseDTO {
 
     private OffsetDateTime createdAt;
 
+    // Never client-settable (see CreateStaffUserRequestDTO/
+    // UpdatePlatformRoleRequestDTO for the only two ways this value
+    // changes) — always CUSTOMER for a self-registered user. Exposed
+    // here so the frontend knows whether to render admin-only UI for
+    // the currently authenticated user.
+    private String platformRole;
+
     // Presente apenas nas respostas de login/registo (emissão de token)
     private String token;
 }
