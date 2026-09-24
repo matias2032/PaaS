@@ -20,6 +20,7 @@ import com.dev58.paasbackend.auth.dto.UpdatePlatformRoleRequestDTO;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.UUID;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -88,6 +89,13 @@ public class AuthController {
     ) {
         AuthResponseDTO response = authService.createStaffUser(userDetails.getUsername(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/staff")
+    @PreAuthorize("hasRole('SUPPORT')")
+    public ResponseEntity<List<AuthResponseDTO>> listStaffUsers() {
+        List<AuthResponseDTO> response = authService.listStaffUsers();
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{publicUuid}/platform-role")

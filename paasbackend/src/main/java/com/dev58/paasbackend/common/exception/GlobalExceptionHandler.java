@@ -37,6 +37,7 @@ import com.dev58.paasbackend.service.exception.ServiceNotFoundException;
 import com.dev58.paasbackend.service.exception.ServiceRepositoryNotFoundException;
 import com.dev58.paasbackend.service.exception.ServiceResourceConfigNotFoundException;
 import com.dev58.paasbackend.service.exception.ServiceTypeNotFoundException;
+import com.dev58.paasbackend.organization.exception.OrganizationAlreadySuspendedException;
 import com.dev58.paasbackend.organization.exception.OrganizationNotSuspendedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -131,7 +132,7 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
     }
 
-    @ExceptionHandler({OrganizationSlugAlreadyExistsException.class, OrganizationMemberAlreadyExistsException.class, OrganizationInactiveException.class, OrganizationNotSuspendedException.class, PlanSlugAlreadyExistsException.class, SubscriptionAlreadyExistsException.class})
+    @ExceptionHandler({OrganizationSlugAlreadyExistsException.class, OrganizationMemberAlreadyExistsException.class, OrganizationInactiveException.class, OrganizationNotSuspendedException.class, OrganizationAlreadySuspendedException.class, PlanSlugAlreadyExistsException.class, SubscriptionAlreadyExistsException.class})
     public ResponseEntity<ErrorResponseDTO> handleOrganizationConflict(
             RuntimeException ex, HttpServletRequest request
     ) {

@@ -467,10 +467,21 @@ public class ServiceService {
         }
     }
 
+    // Mirrors OrganizationService.requireActiveOrganization. Blocks
+    // service writes (and everything nested under a service —
+    // repository, build config, resource config, env vars, domains,
+    // deployments) while the parent organization is INACTIVE or
+    // SUSPENDED; reads are intentionally NOT gated, same reasoning as
+    // ProjectService/OrganizationService.
     private void requireActiveOrganization(Organization organization) {
-        if ("INACTIVE".equals(organization.getStatus())) {
+        String status = organization.getStatus();
+        if ("INACTIVE".equals(status)) {
             throw new OrganizationInactiveException(
                     "This organization is inactive; no changes are allowed until it is reactivated");
+        }
+        if ("SUSPENDED".equals(status)) {
+            throw new OrganizationInactiveException(
+                    "This organization is suspended; no changes are allowed until the suspension is lifted");
         }
     }
 

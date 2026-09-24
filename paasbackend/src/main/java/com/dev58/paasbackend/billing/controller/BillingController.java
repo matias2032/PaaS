@@ -14,17 +14,17 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Sem @RequestMapping de classe porque une dois recursos com raízes
- * diferentes: /api/plans (catálogo) e
- * /api/organizations/{orgPublicUuid}/subscription* (por organização) —
- * cada método declara o path completo.
+ * No class-level @RequestMapping because this controller unites two
+ * resources with different root paths: /api/plans (catalog) and
+ * /api/organizations/{orgPublicUuid}/subscription* (per organization)
+ * — each method declares its full path.
  *
- * NOTA: ainda sem distinção admin/cliente (ver handoff do frontend,
- * secção 6 — depende de platform_role, por decidir). Por agora todos
- * os endpoints de escrita em /api/plans ficam apenas atrás de
- * autenticação normal (SecurityConfig), sem verificação de role de
- * plataforma — reforçar assim que platform_role existir.
+ * Writes to /api/plans (catalog) are PLATFORM_ADMIN — see @PreAuthorize
+ * on each catalog endpoint below. Subscriptions remain authorized via
+ * BillingService.requireOwner (the organization's own OWNER), with no
+ * platform-level @PreAuthorize at all.
  */
+
 @RestController
 @RequiredArgsConstructor
 public class BillingController {
@@ -38,6 +38,14 @@ public class BillingController {
 @PreAuthorize("hasRole('PLATFORM_ADMIN')")
 public PlanResponseDTO createPlan(@Valid @RequestBody PlanRequestDTO request) {
     return billingService.createPlan(request);
+}
+
+// Admin-facing — todos os status (ACTIVE/INACTIVE/ARCHIVED), ao
+// contrário de qualquer listagem pública que só mostre ACTIVE.
+@GetMapping("/api/plans/all")
+@PreAuthorize("hasRole('PLATFORM_ADMIN')")
+public List<PlanResponseDTO> listAllPlans() {
+    return billingService.listAllPlans();
 }
 
 @PutMapping("/api/plans/{publicUuid}")

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
@@ -18,4 +19,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // AuthService.updatePlatformRole() — precisa de saber quantos
     // owners existem antes de aceitar uma demoção.
     long countByPlatformRole(String platformRole);
+
+    // Usado por AuthService.listStaffUsers() — qualquer utilizador com
+    // platformRole diferente de CUSTOMER é considerado staff.
+    List<User> findByPlatformRoleNot(String platformRole);
 }

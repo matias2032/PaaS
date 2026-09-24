@@ -237,14 +237,19 @@ public class ProjectService {
 
     // Mirrors OrganizationService.requireActiveOrganization. Blocks
     // project/git-connection writes while the parent organization is
-    // INACTIVE; reads (getProject, listProjects, listGitConnections,
-    // listGitProviders) are intentionally NOT gated, same reasoning as
-    // there — a member should still be able to see the project list
-    // while the org is inactive.
+    // INACTIVE or SUSPENDED; reads (getProject, listProjects,
+    // listGitConnections, listGitProviders) are intentionally NOT
+    // gated, same reasoning as there — a member should still be able
+    // to see the project list while the org is inactive/suspended.
     private void requireActiveOrganization(Organization organization) {
-        if ("INACTIVE".equals(organization.getStatus())) {
+        String status = organization.getStatus();
+        if ("INACTIVE".equals(status)) {
             throw new OrganizationInactiveException(
                     "This organization is inactive; no changes are allowed until it is reactivated");
+        }
+        if ("SUSPENDED".equals(status)) {
+            throw new OrganizationInactiveException(
+                    "This organization is suspended; no changes are allowed until the suspension is lifted");
         }
     }
 

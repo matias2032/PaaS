@@ -7,6 +7,7 @@ import com.dev58.paasbackend.organization.dto.*;
 import com.dev58.paasbackend.organization.entity.Organization;
 import com.dev58.paasbackend.organization.entity.OrganizationMember;
 import com.dev58.paasbackend.organization.entity.OrganizationRole;
+import com.dev58.paasbackend.organization.exception.OrganizationAlreadySuspendedException;
 import com.dev58.paasbackend.organization.exception.OrganizationInactiveException;
 import com.dev58.paasbackend.organization.exception.OrganizationMemberNotFoundException;
 import com.dev58.paasbackend.organization.exception.OrganizationNotFoundException;
@@ -17,11 +18,13 @@ import com.dev58.paasbackend.organization.repository.OrganizationMemberRepositor
 import com.dev58.paasbackend.organization.repository.OrganizationRepository;
 import com.dev58.paasbackend.organization.repository.OrganizationRoleRepository;
 import com.dev58.paasbackend.organization.exception.OrganizationNotSuspendedException;
-
+import com.dev58.paasbackend.organization.exception.OrganizationAlreadySuspendedException;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 
 import java.util.List;
@@ -81,6 +84,22 @@ public class OrganizationService {
         return organizationMemberRepository.findByUser_IdUser(currentUserId).stream()
                 .map(member -> toResponseDTO(member.getOrganization()))
                 .toList();
+    }
+
+    // Platform-side — sem requireMembership, autorização é
+    // @PreAuthorize("hasRole('SUPPORT')") no controller. Ao contrário de
+    // listOrganizationsForCurrentUser(), devolve TODAS as organizações.
+    public Page<OrganizationResponseDTO> listAllOrganizations(Pageable pageable) {
+        return organizationRepository.findAll(pageable)
+                .map(this::toResponseDTO);
+    }
+
+    // Variante de getOrganization() sem requireMembership — permite ver
+    // o detalhe de uma organização da qual não se é membro (necessário
+    // antes de a suspender).
+    public OrganizationResponseDTO getOrganizationAsAdmin(UUID publicUuid) {
+        Organization organization = findOrganizationOrThrow(publicUuid);
+        return toResponseDTO(organization);
     }
 
     public List<OrganizationRoleResponseDTO> listRoles() {
@@ -190,7 +209,8 @@ public class OrganizationService {
         Organization organization = findOrganizationOrThrow(publicUuid);
 
         if ("SUSPENDED".equals(organization.getStatus())) {
-            throw new IllegalArgumentException("Organization is already suspended");
+            throw new OrganizationAlreadySuspendedException(
+                    "Organization is already suspended: " + publicUuid);
         }
 
         organization.setStatus("SUSPENDED");

@@ -208,6 +208,16 @@ public class AuthService {
         return toResponseDTO(saved, null);
     }
 
+    @Transactional(readOnly = true)
+    public List<AuthResponseDTO> listStaffUsers() {
+        // Sem requireOwner/requireMembership — autorização é
+        // @PreAuthorize("hasRole('SUPPORT')") no controller, mesmo
+        // padrão de InfrastructureService/ApiKeyService.revokeApiKeyAsAdmin.
+        return userRepository.findByPlatformRoleNot("CUSTOMER").stream()
+                .map(user -> toResponseDTO(user, null))
+                .toList();
+    }
+
     @Transactional
     public AuthResponseDTO updatePlatformRole(
             String actingUserEmail, UUID targetPublicUuid, UpdatePlatformRoleRequestDTO request) {

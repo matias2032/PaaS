@@ -16,11 +16,11 @@ import com.dev58.paasbackend.billing.repository.PlanResourceLimitRepository;
 import com.dev58.paasbackend.billing.repository.SubscriptionRepository;
 import com.dev58.paasbackend.organization.entity.Organization;
 import com.dev58.paasbackend.organization.entity.OrganizationMember;
+import com.dev58.paasbackend.organization.exception.OrganizationInactiveException;
 import com.dev58.paasbackend.organization.exception.OrganizationNotFoundException;
 import com.dev58.paasbackend.organization.exception.PermissionDeniedException;
 import com.dev58.paasbackend.organization.repository.OrganizationMemberRepository;
 import com.dev58.paasbackend.organization.repository.OrganizationRepository;
-import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +35,14 @@ import java.util.Optional;
  * decisão explícita (ao contrário de OrganizationService, que só cobre
  * Organization+OrganizationMember): billing é tratado como um domínio
  * único, não dois módulos separados.
+ *
+ * Autorização de catálogo (createPlan/updatePlan/deactivatePlan/
+ * reactivatePlan/archivePlan/setResourceLimits/addPrice/listAllPlans)
+ * vive só no BillingController via @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+ * — mesmo padrão de InfrastructureService, ApiKeyService.revokeApiKeyAsAdmin
+ * e OrganizationService.suspendOrganization/liftSuspension. Nenhum
+ * outro módulo chama estes métodos directamente, por isso uma única
+ * barreira no Controller já cobre todo o caminho de chamada.
  */
 @Service
 @RequiredArgsConstructor
@@ -55,7 +63,6 @@ public class BillingService {
     // ---- Plan: Create/Read/Update ----
 
     @Transactional
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResponseDTO createPlan(PlanRequestDTO request) {
         if (planRepository.existsBySlug(request.getSlug())) {
             throw new PlanSlugAlreadyExistsException("Slug already in use: " + request.getSlug());
@@ -87,10 +94,6 @@ public class BillingService {
     // Admin-facing listing — every status included (ACTIVE, INACTIVE,
     // ARCHIVED). Needed so an admin panel can find and reactivate a
     // hidden plan, which listActivePlans() would never surface.
-    // No endpoint wired to this yet — waiting on the platform_role
-    // decision (see handoff doc) before exposing it, since this must
-    // never be reachable by a regular client.
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public List<PlanResponseDTO> listAllPlans() {
         return planRepository.findAll().stream()
                 .map(this::toPlanResponseDTO)
@@ -98,7 +101,6 @@ public class BillingService {
     }
 
     @Transactional
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResponseDTO updatePlan(UUID publicUuid, PlanRequestDTO request) {
         Plan plan = findPlanOrThrow(publicUuid);
 
@@ -112,7 +114,6 @@ public class BillingService {
     }
 
     @Transactional
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResponseDTO deactivatePlan(UUID publicUuid) {
         Plan plan = findPlanOrThrow(publicUuid);
         plan.setStatus("INACTIVE");
@@ -120,7 +121,6 @@ public class BillingService {
     }
 
     @Transactional
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResponseDTO reactivatePlan(UUID publicUuid) {
         Plan plan = findPlanOrThrow(publicUuid);
         plan.setStatus("ACTIVE");
@@ -129,7 +129,6 @@ public class BillingService {
 
     // Terminal — ao contrário de deactivate/reactivate, não há "un-archive".
     @Transactional
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResponseDTO archivePlan(UUID publicUuid) {
         Plan plan = findPlanOrThrow(publicUuid);
         plan.setStatus("ARCHIVED");
@@ -139,7 +138,6 @@ public class BillingService {
     // ---- Plan resource limits ----
 
     @Transactional
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanResourceLimitResponseDTO setResourceLimits(UUID planPublicUuid, PlanResourceLimitRequestDTO request) {
         Plan plan = findPlanOrThrow(planPublicUuid);
 
@@ -162,7 +160,6 @@ public class BillingService {
     // ---- Plan prices ----
 
     @Transactional
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public PlanPriceResponseDTO addPrice(UUID planPublicUuid, PlanPriceRequestDTO request) {
         Plan plan = findPlanOrThrow(planPublicUuid);
         OffsetDateTime now = OffsetDateTime.now();
@@ -194,6 +191,7 @@ public class BillingService {
     public SubscriptionResponseDTO subscribe(UUID orgPublicUuid, SubscriptionRequestDTO request, Long currentUserId) {
         Organization organization = findOrganizationOrThrow(orgPublicUuid);
         requireOwner(organization, currentUserId);
+        requireActiveOrganization(organization);
 
         if (subscriptionRepository
                 .findByOrganization_IdOrganizationAndStatusIn(organization.getIdOrganization(), LIVE_SUBSCRIPTION_STATUSES)
@@ -237,6 +235,7 @@ public class BillingService {
     public SubscriptionResponseDTO cancelSubscription(UUID orgPublicUuid, Long currentUserId) {
         Organization organization = findOrganizationOrThrow(orgPublicUuid);
         requireOwner(organization, currentUserId);
+        requireActiveOrganization(organization);
 
         Subscription subscription = subscriptionRepository
                 .findByOrganization_IdOrganizationAndStatusIn(organization.getIdOrganization(), LIVE_SUBSCRIPTION_STATUSES)
@@ -251,45 +250,46 @@ public class BillingService {
     }
 
 
-@Transactional
-public SubscriptionResponseDTO switchSubscription(UUID orgPublicUuid, SubscriptionRequestDTO request, Long currentUserId) {
-    Organization organization = findOrganizationOrThrow(orgPublicUuid);
-    requireOwner(organization, currentUserId);
+    @Transactional
+    public SubscriptionResponseDTO switchSubscription(UUID orgPublicUuid, SubscriptionRequestDTO request, Long currentUserId) {
+        Organization organization = findOrganizationOrThrow(orgPublicUuid);
+        requireOwner(organization, currentUserId);
+        requireActiveOrganization(organization);
 
-    PlanPrice newPlanPrice = planPriceRepository.findByPublicUuid(request.getPlanPricePublicUuid())
-            .orElseThrow(() -> new PlanPriceNotFoundException("Plan price not found: " + request.getPlanPricePublicUuid()));
+        PlanPrice newPlanPrice = planPriceRepository.findByPublicUuid(request.getPlanPricePublicUuid())
+                .orElseThrow(() -> new PlanPriceNotFoundException("Plan price not found: " + request.getPlanPricePublicUuid()));
 
-    Optional<Subscription> currentSubscription = subscriptionRepository
-            .findByOrganization_IdOrganizationAndStatusIn(organization.getIdOrganization(), LIVE_SUBSCRIPTION_STATUSES);
+        Optional<Subscription> currentSubscription = subscriptionRepository
+                .findByOrganization_IdOrganizationAndStatusIn(organization.getIdOrganization(), LIVE_SUBSCRIPTION_STATUSES);
 
-    if (currentSubscription.isPresent()) {
-        Subscription current = currentSubscription.get();
+        if (currentSubscription.isPresent()) {
+            Subscription current = currentSubscription.get();
 
-        // Guarda contra "trocar" para o mesmo PlanPrice já ativo — sem
-        // isto, uma chamada direta ao endpoint (o frontend já desativa
-        // o botão nesse caso, mas o endpoint em si não se protegia)
-        // conseguiria cancelar e recriar a mesma subscrição sem
-        // necessidade, perdendo currentPeriodStart e a continuidade do
-        // histórico sem qualquer benefício real.
-        if (current.getPlanPrice().getPublicUuid().equals(newPlanPrice.getPublicUuid())) {
-            throw new SubscriptionAlreadyExistsException(
-                    "Organization is already subscribed to this plan price");
+            // Guarda contra "trocar" para o mesmo PlanPrice já ativo — sem
+            // isto, uma chamada direta ao endpoint (o frontend já desativa
+            // o botão nesse caso, mas o endpoint em si não se protegia)
+            // conseguiria cancelar e recriar a mesma subscrição sem
+            // necessidade, perdendo currentPeriodStart e a continuidade do
+            // histórico sem qualquer benefício real.
+            if (current.getPlanPrice().getPublicUuid().equals(newPlanPrice.getPublicUuid())) {
+                throw new SubscriptionAlreadyExistsException(
+                        "Organization is already subscribed to this plan price");
+            }
+
+            current.setStatus("CANCELLED");
+            current.setCancelledAt(OffsetDateTime.now());
+            current.setAutoRenew(false);
+            subscriptionRepository.save(current);
         }
 
-        current.setStatus("CANCELLED");
-        current.setCancelledAt(OffsetDateTime.now());
-        current.setAutoRenew(false);
-        subscriptionRepository.save(current);
+        Subscription newSubscription = Subscription.builder()
+                .organization(organization)
+                .planPrice(newPlanPrice)
+                .build();
+        newSubscription = subscriptionRepository.save(newSubscription);
+
+        return toSubscriptionResponseDTO(newSubscription);
     }
-
-    Subscription newSubscription = Subscription.builder()
-            .organization(organization)
-            .planPrice(newPlanPrice)
-            .build();
-    newSubscription = subscriptionRepository.save(newSubscription);
-
-    return toSubscriptionResponseDTO(newSubscription);
-}
 
     // ---- Internal helpers ----
 
@@ -313,6 +313,25 @@ public SubscriptionResponseDTO switchSubscription(UUID orgPublicUuid, Subscripti
         OrganizationMember membership = requireMembership(organization, currentUserId);
         if (!ROLE_OWNER.equals(membership.getOrganizationRole().getCode())) {
             throw new PermissionDeniedException("Only OWNER can manage billing for this organization");
+        }
+    }
+
+    // Mirrors OrganizationService/ProjectService/ServiceService/
+    // ApiKeyService.requireActiveOrganization. Blocks subscribe/cancel/
+    // switch while the organization is INACTIVE or SUSPENDED —
+    // getCurrentSubscription/listSubscriptionHistory (reads) are
+    // intentionally NOT gated, same reasoning as elsewhere: a member
+    // should still be able to see the subscription while the org is
+    // inactive/suspended, just not change it.
+    private void requireActiveOrganization(Organization organization) {
+        String status = organization.getStatus();
+        if ("INACTIVE".equals(status)) {
+            throw new OrganizationInactiveException(
+                    "This organization is inactive; no changes are allowed until it is reactivated");
+        }
+        if ("SUSPENDED".equals(status)) {
+            throw new OrganizationInactiveException(
+                    "This organization is suspended; no changes are allowed until the suspension is lifted");
         }
     }
 

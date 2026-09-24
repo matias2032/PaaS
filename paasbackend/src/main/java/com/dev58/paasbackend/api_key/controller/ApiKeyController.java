@@ -79,4 +79,15 @@ public class ApiKeyController {
         ApiKeyResponseDTO response = apiKeyService.revokeApiKeyAsAdmin(publicUuid, request);
         return ResponseEntity.ok(response);
     }
+
+    // Busca cross-organização (A.4) — mesmo padrão de
+    // revokeApiKeyAsAdmin acima: sem verificação de membership,
+    // autorização inteiramente via @PreAuthorize.
+    @GetMapping("/api/admin/organizations/{orgPublicUuid}/api-keys")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ResponseEntity<List<ApiKeyResponseDTO>> listApiKeysByOrganizationAsAdmin(
+            @PathVariable UUID orgPublicUuid) {
+        List<ApiKeyResponseDTO> response = apiKeyService.listApiKeysByOrganizationAsAdmin(orgPublicUuid);
+        return ResponseEntity.ok(response);
+    }
 }

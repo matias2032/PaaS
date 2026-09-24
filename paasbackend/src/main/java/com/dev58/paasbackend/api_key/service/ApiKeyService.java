@@ -134,6 +134,19 @@ public class ApiKeyService {
         return toResponseDTO(apiKey);
     }
 
+    // Sem requireOwner/requireMembership — autorização é
+    // @PreAuthorize("hasRole('PLATFORM_ADMIN')") no controller.
+    // Cross-organização por natureza (resposta a incidentes sem UUID
+    // exacto da chave), por isso nível mínimo mais restrito que
+    // A.1/A.3 (SUPPORT).
+    public List<ApiKeyResponseDTO> listApiKeysByOrganizationAsAdmin(UUID orgPublicUuid) {
+        Organization organization = findOrganizationOrThrow(orgPublicUuid);
+
+        return apiKeyRepository.findByOrganization_IdOrganization(organization.getIdOrganization()).stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
     // ==================== Key generation ====================
 
     private String generateRawKey() {
