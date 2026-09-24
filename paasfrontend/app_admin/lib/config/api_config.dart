@@ -34,6 +34,10 @@ class ApiConfig {
 
   static const String _adminOrganizations = '/api/admin/organizations';
 
+  // ── Relative paths — INFRASTRUCTURE ─────────────────────────────────
+
+  static const String _infra = '/api/infrastructure';
+
   // ── Caminhos relativos — BILLING (catálogo, vista admin) ──────────
 
   static const String _plansAll = '/api/plans/all';
@@ -66,6 +70,29 @@ class ApiConfig {
 
   static String adminOrganizationApiKeysUrl(String orgPublicUuid) =>
       '$baseUrl$_adminOrganizations/$orgPublicUuid/api-keys';
+
+  // ── Full URLs — INFRASTRUCTURE ──────────────────────────────────────
+
+  static String get coolifyInstancesUrl => '$baseUrl$_infra/coolify-instances';
+
+  static String coolifyInstanceByPublicUuidUrl(String publicUuid) =>
+      '$coolifyInstancesUrl/$publicUuid';
+
+  static String coolifyInstanceStatusUrl(String publicUuid) =>
+      '$coolifyInstancesUrl/$publicUuid/status';
+
+  static String coolifyInstanceServersUrl(String publicUuid) =>
+      '$coolifyInstancesUrl/$publicUuid/servers';
+
+  static String get serversUrl => '$baseUrl$_infra/servers';
+
+  static String serverByPublicUuidUrl(String publicUuid) =>
+      '$serversUrl/$publicUuid';
+
+  static String serverStatusUrl(String publicUuid) =>
+      '$serversUrl/$publicUuid/status';
+
+  static String get serverProvidersUrl => '$baseUrl$_infra/server-providers';
 
   // ── URLs completas — BILLING ─────────────────────────────────────────
 

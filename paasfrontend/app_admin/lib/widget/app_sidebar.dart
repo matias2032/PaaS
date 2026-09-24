@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/auth_provider.dart';
+import '/provider/infrastructure_provider.dart';
+import '/screens/coolify_instances_screen.dart';
 import '/screens/login_screen.dart';
+import '/screens/servers_screen.dart';
 import '/screens/staff_screen.dart';
 
 class AppSidebar extends StatelessWidget {
@@ -31,14 +34,35 @@ class AppSidebar extends StatelessWidget {
             ],
           ),
         ),
-        // SUPPORT+ pode ver a lista de staff (mesma regra do backend:
-        // GET /api/auth/staff exige hasRole('SUPPORT')).
+        // Owner only (mirrors GET/POST /api/auth/staff: hasRole('PLATFORM_OWNER')).
         if (authProvider.isPlatformOwner)
           ListTile(
             leading: const Icon(Icons.people_outline),
             title: const Text('Staff'),
-            onTap: () => onNavigate(const StaffScreen()),
+            onTap: () {
+              Navigator.of(context).pop(); // close the drawer
+              onNavigate(const StaffScreen());
+            },
           ),
+        // PLATFORM_ADMIN or above (InfrastructureController: hasRole('PLATFORM_ADMIN')).
+        if (authProvider.isAtLeastPlatformAdmin) ...[
+          ListTile(
+            leading: const Icon(Icons.cloud_outlined),
+            title: const Text('Coolify instances'),
+            onTap: () {
+              Navigator.of(context).pop();
+              onNavigate(const CoolifyInstancesScreen());
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.dns_outlined),
+            title: const Text('Servers'),
+            onTap: () {
+              Navigator.of(context).pop();
+              onNavigate(const ServersScreen());
+            },
+          ),
+        ],
         // Espaço reservado para as próximas etapas — cada item entra
         // aqui condicionado ao platformRole mínimo exigido pelo backend
         // correspondente (INFRASTRUCTURE/BILLING = PLATFORM_ADMIN,
@@ -49,6 +73,8 @@ class AppSidebar extends StatelessWidget {
           leading: const Icon(Icons.logout),
          title: const Text('Log out'),
           onTap: () async {
+            // Drop cached infrastructure data before the session ends.
+            context.read<InfrastructureProvider>().reset();
             await authProvider.logout();
             if (context.mounted) {
               Navigator.of(context).pushAndRemoveUntil(

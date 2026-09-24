@@ -25,7 +25,7 @@ class ApiClient {
 
     final token = await _token;
     if (token == null) {
-      throw ApiException(statusCode: 401, message: 'Sessão não iniciada.');
+      throw ApiException(statusCode: 401, message: 'Session not started.');
     }
     return ApiConfig.authHeaders(token);
   }

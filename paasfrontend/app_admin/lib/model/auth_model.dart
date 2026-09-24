@@ -60,7 +60,14 @@ class AuthResponse {
   bool get isSupport => platformRole == 'SUPPORT';
   bool get isPlatformAdmin => platformRole == 'PLATFORM_ADMIN';
   bool get isPlatformOwner => platformRole == 'PLATFORM_OWNER';
-    bool get isActive => status == 'ACTIVE';
+
+  // Hierarchical checks (OWNER > ADMIN > SUPPORT). The getters above are
+  // exact-match; use these to mirror hasRole('PLATFORM_ADMIN') and
+  // hasRole('SUPPORT') on the backend, where higher roles pass too.
+  bool get isAtLeastPlatformAdmin => isPlatformAdmin || isPlatformOwner;
+  bool get isAtLeastSupport => isSupport || isAtLeastPlatformAdmin;
+
+  bool get isActive => status == 'ACTIVE';
 
   // Regra do painel admin: só staff (SUPPORT/PLATFORM_ADMIN/PLATFORM_OWNER)
   // pode entrar; CUSTOMER é recusado logo no ecrã de login.

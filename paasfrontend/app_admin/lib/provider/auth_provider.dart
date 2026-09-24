@@ -35,6 +35,8 @@ class AuthProvider extends ChangeNotifier {
   bool get isSupport => _currentUser?.isSupport ?? false;
   bool get isPlatformAdmin => _currentUser?.isPlatformAdmin ?? false;
   bool get isPlatformOwner => _currentUser?.isPlatformOwner ?? false;
+  bool get isAtLeastPlatformAdmin => _currentUser?.isAtLeastPlatformAdmin ?? false;
+  bool get isAtLeastSupport => _currentUser?.isAtLeastSupport ?? false;
 
     bool get mustChangePassword => _currentUser?.firstPassword ?? false;
 

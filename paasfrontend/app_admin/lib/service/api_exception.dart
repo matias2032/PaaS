@@ -19,34 +19,34 @@ class ApiException implements Exception {
 
   factory ApiException.network() => ApiException(
         statusCode: null,
-        message: 'Falha de ligação. Verifica a tua rede e o servidor.',
+        message: 'Connection failure. Check your network and the server.',
       );
 
   factory ApiException.timeout() => ApiException(
         statusCode: null,
-        message: 'O pedido demorou demasiado tempo. Tenta novamente.',
+        message: 'The request took too long. Please try again.',
       );
 
   static dynamic _tryDecodeJson(String body) {
-    // Import local a jsonDecode feito no ficheiro que usa isto,
-    // mantido simples aqui para não acoplar dependências extra.
+    // Local import to jsonDecode done in the file using this,
+    // kept simple here to avoid coupling extra dependencies.
     return null;
   }
 
   static String _defaultMessageFor(int statusCode) {
     switch (statusCode) {
       case 400:
-        return 'Pedido inválido.';
+        return 'Invalid request.';
       case 401:
-        return 'Sessão expirada ou credenciais inválidas.';
+        return 'Session expired or invalid credentials.';
       case 403:
-        return 'Não tens permissão para esta acção.';
+        return 'You do not have permission for this action.';
       case 404:
-        return 'Recurso não encontrado.';
+        return 'Resource not found.';
       case 409:
-        return 'Conflito de estado — a acção não pode ser concluída.';
+        return 'State conflict — the action cannot be completed.';
       default:
-        return 'Erro inesperado ($statusCode).';
+        return 'Unexpected error ($statusCode).';
     }
   }
 

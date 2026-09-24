@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'provider/auth_provider.dart';
+import 'provider/infrastructure_provider.dart';
 import 'screens/login_screen.dart';
 
 void main() {
@@ -15,6 +16,7 @@ class AppAdmin extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => InfrastructureProvider()),
       ],
       child: MaterialApp(
 title: 'Admin Panel',
