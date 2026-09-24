@@ -33,6 +33,7 @@ import java.util.HexFormat;
 import java.util.UUID;
 import com.dev58.paasbackend.auth.dto.CreateStaffUserRequestDTO;
 import com.dev58.paasbackend.auth.dto.UpdatePlatformRoleRequestDTO;
+import com.dev58.paasbackend.auth.exception.AccountDeactivatedException;
 import com.dev58.paasbackend.auth.exception.InsufficientPlatformRoleException;
 import com.dev58.paasbackend.auth.exception.LastPlatformOwnerException;
 import java.util.List;
@@ -49,6 +50,11 @@ public class AuthService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int RESET_TOKEN_TTL_MINUTES = 30;
+
+        // Password temporária fixa atribuída a todo o staff criado por um
+    // owner (regra 1) — nunca vem do request, nunca é devolvida pela
+    // API; a UI mostra este valor estaticamente após a criação.
+    private static final String DEFAULT_STAFF_PASSWORD = "12345678";
 
     // Driven by application-dev.yml / application-prod.yml — see the
     // TODO comment in application-prod.yml for what's still missing
@@ -102,6 +108,7 @@ public class AuthService {
                 .phone(request.getPhone())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .status(requireEmailVerification ? "PENDING_VERIFICATION" : "ACTIVE")
+                .firstPassword(false) // cliente define a própria password — nunca precisa deste fluxo
                 .build();
 
         User saved = userRepository.save(user);
@@ -117,8 +124,12 @@ public class AuthService {
                 .orElseThrow(() -> new InvalidCredentialsException(
                         "Invalid email or password"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new InvalidCredentialsException("Invalid email or password");
+        }
+
+        if (!"ACTIVE".equals(user.getStatus())) {
+            throw new AccountDeactivatedException("This account has been deactivated.");
         }
 
         String token = jwtService.generateToken(user.getEmail(), user.getPublicUuid());
@@ -158,6 +169,7 @@ public class AuthService {
         }
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setFirstPassword(false); // liberta o acesso — regra 1
 
         User saved = userRepository.save(user);
 
@@ -192,15 +204,10 @@ public class AuthService {
                 .lastName(request.getLastName())
                 .email(request.getEmail())
                 .phone(request.getPhone())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                // Contas de staff criadas por um admin são implicitamente
-                // confiadas — ao contrário do auto-registo anónimo, não
-                // ficam sujeitas a requireEmailVerification. Sem serviço
-                // de activação por email para staff, fica sempre ACTIVE
-                // por agora; requireStaffEmailVerification já está ligado
-                // e pronto a activar quando esse fluxo existir.
+                .passwordHash(passwordEncoder.encode(DEFAULT_STAFF_PASSWORD))
                 .status(requireStaffEmailVerification ? "PENDING_VERIFICATION" : "ACTIVE")
                 .platformRole(request.getPlatformRole())
+                .firstPassword(true) // regra 1 — obrigado a mudar no primeiro login
                 .build();
 
         User saved = userRepository.save(staffUser);
@@ -209,11 +216,9 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuthResponseDTO> listStaffUsers() {
-        // Sem requireOwner/requireMembership — autorização é
-        // @PreAuthorize("hasRole('SUPPORT')") no controller, mesmo
-        // padrão de InfrastructureService/ApiKeyService.revokeApiKeyAsAdmin.
+    public List<AuthResponseDTO> listStaffUsers(String actingUserEmail) {
         return userRepository.findByPlatformRoleNot("CUSTOMER").stream()
+                .filter(user -> !user.getEmail().equalsIgnoreCase(actingUserEmail))
                 .map(user -> toResponseDTO(user, null))
                 .toList();
     }
@@ -341,9 +346,39 @@ public class AuthService {
                 .email(user.getEmail())
                 .status(user.getStatus())
                 .platformRole(user.getPlatformRole())
+                .firstPassword(user.isFirstPassword())
                 .emailVerifiedAt(user.getEmailVerifiedAt())
                 .createdAt(user.getCreatedAt())
                 .token(token)
                 .build();
+    }
+
+        @Transactional
+    public AuthResponseDTO updateUserActiveStatus(
+            String actingUserEmail, UUID targetPublicUuid, boolean active) {
+
+        User actingUser = userRepository.findByEmail(actingUserEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        User targetUser = userRepository.findByPublicUuid(targetPublicUuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (actingUser.getIdUser().equals(targetUser.getIdUser())) {
+            throw new IllegalArgumentException("You cannot change your own active status");
+        }
+
+        if (!active && "PLATFORM_OWNER".equals(targetUser.getPlatformRole())) {
+            long activeOwnerCount =
+                    userRepository.countByPlatformRoleAndStatus("PLATFORM_OWNER", "ACTIVE");
+            if (activeOwnerCount <= 1) {
+                throw new LastPlatformOwnerException(
+                        "Cannot deactivate the last remaining active PLATFORM_OWNER");
+            }
+        }
+
+        targetUser.setStatus(active ? "ACTIVE" : "INACTIVE");
+        User saved = userRepository.save(targetUser);
+
+        return toResponseDTO(saved, null);
     }
 }

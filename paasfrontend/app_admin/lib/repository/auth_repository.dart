@@ -37,30 +37,42 @@ class AuthRepository {
     return _authService.listStaff();
   }
 
+ static const String defaultStaffPassword = '12345678';
+
   Future<AuthResponse> createStaffUser({
     required String email,
-    required String password,
     required String firstName,
     String? lastName,
     String? phone,
     required String platformRole,
   }) async {
     if (platformRole == 'CUSTOMER') {
-      // Espelha a guarda do backend (AuthService.createStaffUser) —
-      // falha aqui é mais rápido/claro do que esperar pelo 400 da API.
       throw ApiException(
         statusCode: 400,
-        message: 'CUSTOMER não é um papel válido para criação de staff.',
+        message: 'CUSTOMER is not a valid role for staff creation.',
       );
     }
     return _authService.createStaffUser(
       email: email,
-      password: password,
       firstName: firstName,
       lastName: lastName,
       phone: phone,
       platformRole: platformRole,
     );
+  }
+
+  Future<AuthResponse> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    return _authService.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+  }
+
+  Future<AuthResponse> updateUserActiveStatus(String publicUuid, bool active) async {
+    return _authService.updateUserActiveStatus(publicUuid, active);
   }
 
   Future<AuthResponse> updatePlatformRole(String publicUuid, String platformRole) async {

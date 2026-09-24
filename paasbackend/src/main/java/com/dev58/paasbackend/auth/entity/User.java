@@ -54,6 +54,12 @@ private String email;
     @Column(name = "platform_role", nullable = false, length = 20)
     private String platformRole;
 
+    // true = utilizador ainda está a usar a password temporária gerada
+    // pelo owner (ver AuthService.DEFAULT_STAFF_PASSWORD); nunca true
+    // para clientes (auto-registo já entra com false).
+    @Column(name = "first_password", nullable = false)
+    private boolean firstPassword;
+
     @Column(name = "email_verified_at")
     private OffsetDateTime emailVerifiedAt;
 

@@ -33,7 +33,8 @@ public UserDetails loadUserByUsername(String email) throws UsernameNotFoundExcep
             user.getEmail(),
             user.getPasswordHash(),
             "ACTIVE".equals(user.getStatus()),
-            user.getPlatformRole()
+            user.getPlatformRole(),
+            user.isFirstPassword()
     );
 }
 }

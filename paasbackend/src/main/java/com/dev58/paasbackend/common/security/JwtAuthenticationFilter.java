@@ -56,6 +56,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                    if (userDetails instanceof AuthenticatedUser authenticatedUser
+                            && authenticatedUser.isFirstPasswordPending()
+                            && !isAllowedWhileFirstPasswordPending(request)) {
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json");
+                        response.getWriter().write(
+                                "{\"message\":\"You must change your temporary password before continuing.\"}");
+                        return;
+                    }
                 }
             }
         } catch (Exception ex) {
@@ -66,5 +76,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+        private boolean isAllowedWhileFirstPasswordPending(HttpServletRequest request) {
+        return "PUT".equals(request.getMethod())
+                && request.getRequestURI().endsWith("/api/auth/me/password");
     }
 }

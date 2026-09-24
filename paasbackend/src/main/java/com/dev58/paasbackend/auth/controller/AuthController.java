@@ -3,6 +3,7 @@ package com.dev58.paasbackend.auth.controller;
 import com.dev58.paasbackend.auth.dto.AuthRequestDTO;
 import com.dev58.paasbackend.auth.dto.AuthResponseDTO;
 import com.dev58.paasbackend.auth.dto.UpdateProfileRequestDTO;
+import com.dev58.paasbackend.auth.dto.UpdateUserStatusRequestDTO;
 import com.dev58.paasbackend.auth.dto.ChangePasswordRequestDTO;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -82,7 +83,7 @@ public class AuthController {
     }
 
         @PostMapping("/staff")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_OWNER')")
     public ResponseEntity<AuthResponseDTO> createStaffUser(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody CreateStaffUserRequestDTO request
@@ -92,9 +93,22 @@ public class AuthController {
     }
 
     @GetMapping("/staff")
-    @PreAuthorize("hasRole('SUPPORT')")
-    public ResponseEntity<List<AuthResponseDTO>> listStaffUsers() {
-        List<AuthResponseDTO> response = authService.listStaffUsers();
+    @PreAuthorize("hasRole('PLATFORM_OWNER')")
+    public ResponseEntity<List<AuthResponseDTO>> listStaffUsers(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        List<AuthResponseDTO> response = authService.listStaffUsers(userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/staff/{publicUuid}/active")
+    @PreAuthorize("hasRole('PLATFORM_OWNER')")
+    public ResponseEntity<AuthResponseDTO> updateUserActiveStatus(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID publicUuid,
+            @Valid @RequestBody UpdateUserStatusRequestDTO request
+    ) {
+        AuthResponseDTO response = authService.updateUserActiveStatus(
+                userDetails.getUsername(), publicUuid, request.getActive());
         return ResponseEntity.ok(response);
     }
 

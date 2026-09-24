@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/auth_model.dart';
 import '../provider/auth_provider.dart';
+import '../repository/auth_repository.dart';
 
 const _platformRoles = ['SUPPORT', 'PLATFORM_ADMIN', 'PLATFORM_OWNER'];
 
@@ -43,7 +44,7 @@ class _StaffScreenState extends State<StaffScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            tooltip: 'Criar staff',
+            tooltip: 'Create staff user',
             onPressed: _openCreateDialog,
           ),
         ],
@@ -57,7 +58,7 @@ class _StaffScreenState extends State<StaffScreen> {
             return Center(child: Text(authProvider.staffErrorMessage!));
           }
           if (authProvider.staff.isEmpty) {
-            return const Center(child: Text('Nenhum utilizador de staff.'));
+            return const Center(child: Text('No staff users yet.'));
           }
           return ListView.separated(
             itemCount: authProvider.staff.length,
@@ -67,7 +68,22 @@ class _StaffScreenState extends State<StaffScreen> {
               return ListTile(
                 title: Text('${user.firstName} ${user.lastName ?? ''}'.trim()),
                 subtitle: Text(user.email),
-                trailing: Chip(label: Text(user.platformRole)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Chip(label: Text(user.platformRole)),
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message: user.isActive ? 'Deactivate' : 'Activate',
+                      child: Switch(
+                        value: user.isActive,
+                        onChanged: (value) => context
+                            .read<AuthProvider>()
+                            .updateUserActiveStatus(user.publicUuid, value),
+                      ),
+                    ),
+                  ],
+                ),
                 onTap: () => _openRoleDialog(user),
               );
             },
@@ -91,9 +107,17 @@ class _CreateStaffDialogState extends State<_CreateStaffDialog> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
   String _platformRole = _platformRoles.first;
   bool _submitting = false;
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -101,7 +125,6 @@ class _CreateStaffDialogState extends State<_CreateStaffDialog> {
 
     final success = await context.read<AuthProvider>().createStaffUser(
           email: _emailController.text.trim(),
-          password: _passwordController.text,
           firstName: _firstNameController.text.trim(),
           lastName: _lastNameController.text.trim().isEmpty
               ? null
@@ -122,7 +145,7 @@ class _CreateStaffDialogState extends State<_CreateStaffDialog> {
     final errorMessage = context.watch<AuthProvider>().staffErrorMessage;
 
     return AlertDialog(
-      title: const Text('Criar staff'),
+      title: const Text('Create staff user'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -131,29 +154,23 @@ class _CreateStaffDialogState extends State<_CreateStaffDialog> {
             children: [
               TextFormField(
                 controller: _firstNameController,
-                decoration: const InputDecoration(labelText: 'Primeiro nome'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Obrigatório' : null,
+                decoration: const InputDecoration(labelText: 'First name'),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               TextFormField(
                 controller: _lastNameController,
-                decoration: const InputDecoration(labelText: 'Último nome (opcional)'),
+                decoration: const InputDecoration(labelText: 'Last name (optional)'),
               ),
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Obrigatório' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               TextFormField(
                 controller: _phoneController,
-                decoration: const InputDecoration(labelText: 'Telefone (opcional)'),
-              ),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Palavra-passe'),
-                obscureText: true,
-                validator: (v) => (v == null || v.length < 8)
-                    ? 'Mínimo 8 caracteres'
-                    : null,
+                decoration: const InputDecoration(labelText: 'Phone (optional)'),
               ),
               DropdownButtonFormField<String>(
                 initialValue: _platformRole,
@@ -162,6 +179,15 @@ class _CreateStaffDialogState extends State<_CreateStaffDialog> {
                     .map((role) => DropdownMenuItem(value: role, child: Text(role)))
                     .toList(),
                 onChanged: (value) => setState(() => _platformRole = value!),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Temporary password: ${AuthRepository.defaultStaffPassword} '
+                  '(the user must change it on first login).',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
               if (errorMessage != null) ...[
                 const SizedBox(height: 12),
@@ -175,14 +201,14 @@ class _CreateStaffDialogState extends State<_CreateStaffDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: _submitting ? null : _submit,
           child: _submitting
               ? const SizedBox(
                   height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Criar'),
+              : const Text('Create'),
         ),
       ],
     );
@@ -216,15 +242,15 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
     final errorMessage = context.watch<AuthProvider>().staffErrorMessage;
 
     return AlertDialog(
-      title: Text('Alterar role — ${widget.user.firstName}'),
+      title: Text('Change role — ${widget.user.firstName}'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           DropdownButtonFormField<String>(
             initialValue: _selectedRole,
             decoration: const InputDecoration(labelText: 'Platform role'),
-            // CUSTOMER incluído aqui — é o único ecrã onde faz sentido
-            // (revoga acesso de staff, ver UpdatePlatformRoleRequestDTO).
+            // CUSTOMER included here — the only screen where it makes
+            // sense (revokes staff access, see UpdatePlatformRoleRequestDTO).
             items: ['CUSTOMER', ..._platformRoles]
                 .map((role) => DropdownMenuItem(value: role, child: Text(role)))
                 .toList(),
@@ -240,14 +266,14 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: _submitting ? null : _submit,
           child: _submitting
               ? const SizedBox(
                   height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Guardar'),
+              : const Text('Save'),
         ),
       ],
     );

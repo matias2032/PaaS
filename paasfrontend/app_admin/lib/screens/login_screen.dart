@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/auth_provider.dart';
+import 'change_password_screen.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -33,12 +34,17 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
+      final authProvider = context.read<AuthProvider>();
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(
+          builder: (_) => authProvider.mustChangePassword
+              ? const ChangePasswordScreen(forced: true)
+              : const HomeScreen(),
+        ),
       );
     }
-    // Se falhar (incluindo CUSTOMER recusado pelo repository), o
-    // errorMessage fica disponível no provider e é mostrado abaixo.
+    // If it fails (including CUSTOMER refused by the repository), the
+    // errorMessage is available in the provider and is shown below.
   }
 
   @override
@@ -58,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Painel Administrativo',
+                        'Admin Panel',
                         style: Theme.of(context).textTheme.headlineSmall,
                         textAlign: TextAlign.center,
                       ),
@@ -72,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Introduz o email';
+                            return 'Enter your email';
                           }
                           return null;
                         },
@@ -82,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         decoration: InputDecoration(
-                          labelText: 'Palavra-passe',
+                          labelText: 'Password',
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
                             icon: Icon(_obscurePassword
@@ -94,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Introduz a palavra-passe';
+                            return 'Enter your password';
                           }
                           return null;
                         },
@@ -118,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 width: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('Entrar'),
+                            : const Text('Login'),
                       ),
                     ],
                   ),

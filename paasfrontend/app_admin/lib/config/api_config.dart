@@ -47,6 +47,9 @@ class ApiConfig {
   static String authByPublicUuidUrl(String publicUuid) =>
       '$baseUrl$_auth/$publicUuid';
 
+    static String authStaffActiveUrl(String publicUuid) =>
+      '$authStaffUrl/$publicUuid/active';    
+
   static String authPlatformRoleUrl(String publicUuid) =>
       '$baseUrl$_auth/$publicUuid/platform-role';
 

@@ -9,7 +9,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Widget _body = const Center(child: Text('Bem-vindo ao painel administrativo.'));
+Widget _body = const Center(child: Text('Welcome to the admin panel.'));
 
   void _navigate(Widget screen) {
     setState(() => _body = screen);
@@ -18,7 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Painel Administrativo')),
+ appBar: AppBar(title: const Text('Admin Panel')),
       drawer: AppSidebar(currentRoute: '', onNavigate: _navigate),
       body: _body,
     );

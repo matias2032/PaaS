@@ -35,7 +35,6 @@ class AuthService {
 
   Future<AuthResponse> createStaffUser({
     required String email,
-    required String password,
     required String firstName,
     String? lastName,
     String? phone,
@@ -45,7 +44,6 @@ class AuthService {
       '${ApiConfig.authUrl}/staff',
       body: {
         'email': email,
-        'password': password,
         'firstName': firstName,
         if (lastName != null) 'lastName': lastName,
         if (phone != null) 'phone': phone,
@@ -59,6 +57,25 @@ class AuthService {
     final json = await ApiClient.patch(
       ApiConfig.authPlatformRoleUrl(publicUuid),
       body: {'platformRole': platformRole},
+    );
+    return AuthResponse.fromJson(json as Map<String, dynamic>);
+  }
+
+    Future<AuthResponse> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final json = await ApiClient.put(
+      ApiConfig.authMePasswordUrl(),
+      body: {'currentPassword': currentPassword, 'newPassword': newPassword},
+    );
+    return AuthResponse.fromJson(json as Map<String, dynamic>);
+  }
+
+  Future<AuthResponse> updateUserActiveStatus(String publicUuid, bool active) async {
+    final json = await ApiClient.patch(
+      ApiConfig.authStaffActiveUrl(publicUuid),
+      body: {'active': active},
     );
     return AuthResponse.fromJson(json as Map<String, dynamic>);
   }

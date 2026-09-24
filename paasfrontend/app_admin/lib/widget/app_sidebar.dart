@@ -33,9 +33,7 @@ class AppSidebar extends StatelessWidget {
         ),
         // SUPPORT+ pode ver a lista de staff (mesma regra do backend:
         // GET /api/auth/staff exige hasRole('SUPPORT')).
-        if (authProvider.isSupport ||
-            authProvider.isPlatformAdmin ||
-            authProvider.isPlatformOwner)
+        if (authProvider.isPlatformOwner)
           ListTile(
             leading: const Icon(Icons.people_outline),
             title: const Text('Staff'),
@@ -49,7 +47,7 @@ class AppSidebar extends StatelessWidget {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.logout),
-          title: const Text('Sair'),
+         title: const Text('Log out'),
           onTap: () async {
             await authProvider.logout();
             if (context.mounted) {

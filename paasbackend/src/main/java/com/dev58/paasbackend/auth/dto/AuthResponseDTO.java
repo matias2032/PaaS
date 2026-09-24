@@ -37,6 +37,11 @@ public class AuthResponseDTO {
     // the currently authenticated user.
     private String platformRole;
 
+    // true enquanto o utilizador ainda usa a password temporária gerada
+    // por um owner — a UI deve forçar a tela de mudança de password.
+    // Sempre false para CUSTOMER.
+    private boolean firstPassword;
+
     // Presente apenas nas respostas de login/registo (emissão de token)
     private String token;
 }

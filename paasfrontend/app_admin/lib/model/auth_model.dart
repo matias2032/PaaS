@@ -5,6 +5,7 @@ class AuthResponse {
   final String email;
   final String status;
   final String platformRole;
+  final bool firstPassword;
   final DateTime? emailVerifiedAt;
   final DateTime createdAt;
   final String? token;
@@ -16,6 +17,7 @@ class AuthResponse {
     required this.email,
     required this.status,
     required this.platformRole,
+    required this.firstPassword,
     this.emailVerifiedAt,
     required this.createdAt,
     this.token,
@@ -29,6 +31,7 @@ class AuthResponse {
       email: json['email'] as String,
       status: json['status'] as String,
       platformRole: json['platformRole'] as String,
+      firstPassword: json['firstPassword'] as bool? ?? false,
       emailVerifiedAt: json['emailVerifiedAt'] != null
           ? DateTime.parse(json['emailVerifiedAt'] as String)
           : null,
@@ -45,6 +48,7 @@ class AuthResponse {
       'email': email,
       'status': status,
       'platformRole': platformRole,
+      'firstPassword': firstPassword,
       if (emailVerifiedAt != null)
         'emailVerifiedAt': emailVerifiedAt!.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
@@ -56,6 +60,7 @@ class AuthResponse {
   bool get isSupport => platformRole == 'SUPPORT';
   bool get isPlatformAdmin => platformRole == 'PLATFORM_ADMIN';
   bool get isPlatformOwner => platformRole == 'PLATFORM_OWNER';
+    bool get isActive => status == 'ACTIVE';
 
   // Regra do painel admin: só staff (SUPPORT/PLATFORM_ADMIN/PLATFORM_OWNER)
   // pode entrar; CUSTOMER é recusado logo no ecrã de login.
@@ -68,6 +73,7 @@ class AuthResponse {
     String? email,
     String? status,
     String? platformRole,
+    bool? firstPassword,
     DateTime? emailVerifiedAt,
     DateTime? createdAt,
     String? token,
@@ -79,6 +85,7 @@ class AuthResponse {
       email: email ?? this.email,
       status: status ?? this.status,
       platformRole: platformRole ?? this.platformRole,
+      firstPassword: firstPassword ?? this.firstPassword,
       emailVerifiedAt: emailVerifiedAt ?? this.emailVerifiedAt,
       createdAt: createdAt ?? this.createdAt,
       token: token ?? this.token,

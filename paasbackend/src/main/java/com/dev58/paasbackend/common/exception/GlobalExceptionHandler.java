@@ -2,6 +2,7 @@ package com.dev58.paasbackend.common.exception;
 
 import com.dev58.paasbackend.api_key.exception.ApiKeyNameAlreadyExistsException;
 import com.dev58.paasbackend.api_key.exception.ApiKeyNotFoundException;
+import com.dev58.paasbackend.auth.exception.AccountDeactivatedException;
 import com.dev58.paasbackend.auth.exception.InsufficientPlatformRoleException;
 import com.dev58.paasbackend.auth.exception.InvalidCredentialsException;
 import com.dev58.paasbackend.auth.exception.InvalidResetTokenException;
@@ -46,6 +47,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import java.util.Map;
 
 import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
@@ -137,6 +139,12 @@ public class GlobalExceptionHandler {
             RuntimeException ex, HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+        @ExceptionHandler(AccountDeactivatedException.class)
+    public ResponseEntity<?> handleAccountDeactivated(AccountDeactivatedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", ex.getMessage()));
     }
 
     @ExceptionHandler({PlanNotFoundException.class, PlanPriceNotFoundException.class, SubscriptionNotFoundException.class})

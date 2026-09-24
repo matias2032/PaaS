@@ -23,4 +23,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Usado por AuthService.listStaffUsers() — qualquer utilizador com
     // platformRole diferente de CUSTOMER é considerado staff.
     List<User> findByPlatformRoleNot(String platformRole);
+
+
+        // Usado pela guarda do último PLATFORM_OWNER ACTIVO em
+    // AuthService.updateUserActiveStatus() — não conta owners já
+    // inactivos, ao contrário de countByPlatformRole().
+    long countByPlatformRoleAndStatus(String platformRole, String status);
 }

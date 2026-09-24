@@ -36,6 +36,44 @@ class AuthProvider extends ChangeNotifier {
   bool get isPlatformAdmin => _currentUser?.isPlatformAdmin ?? false;
   bool get isPlatformOwner => _currentUser?.isPlatformOwner ?? false;
 
+    bool get mustChangePassword => _currentUser?.firstPassword ?? false;
+
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    _errorMessage = null;
+    try {
+      final updated = await _authRepository.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      _currentUser = updated;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateUserActiveStatus(String publicUuid, bool active) async {
+    _staffErrorMessage = null;
+    try {
+      final updated = await _authRepository.updateUserActiveStatus(publicUuid, active);
+      _staff = _staff
+          .map((user) => user.publicUuid == publicUuid ? updated : user)
+          .toList();
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _staffErrorMessage = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> login(String email, String password) async {
     _isLoading = true;
     _errorMessage = null;
@@ -83,7 +121,6 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> createStaffUser({
     required String email,
-    required String password,
     required String firstName,
     String? lastName,
     String? phone,
@@ -93,7 +130,6 @@ class AuthProvider extends ChangeNotifier {
     try {
       final created = await _authRepository.createStaffUser(
         email: email,
-        password: password,
         firstName: firstName,
         lastName: lastName,
         phone: phone,

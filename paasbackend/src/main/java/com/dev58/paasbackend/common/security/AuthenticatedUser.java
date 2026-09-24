@@ -20,16 +20,18 @@ public class AuthenticatedUser implements UserDetails {
     private final String passwordHash;
     private final boolean enabled;
     private final String platformRole;
+    private final boolean firstPasswordPending;
 
     public AuthenticatedUser(
             Long idUser, UUID publicUuid, String email, String passwordHash,
-            boolean enabled, String platformRole) {
+            boolean enabled, String platformRole, boolean firstPasswordPending) {
         this.idUser = idUser;
         this.publicUuid = publicUuid;
         this.email = email;
         this.passwordHash = passwordHash;
         this.enabled = enabled;
         this.platformRole = platformRole;
+        this.firstPasswordPending = firstPasswordPending;
     }
 
     @Override
