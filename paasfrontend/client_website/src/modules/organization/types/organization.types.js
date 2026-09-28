@@ -26,6 +26,8 @@
  *   (update, add/remove member, change role — including leaving the
  *   org yourself) is rejected by the backend with 409
  *   OrganizationInactiveException. Reads remain available.
+ * @property {string|null} [suspensionReason] - set while status is
+ *   "SUSPENDED"; visible to any member. Never use it for logic, only display.
  * @property {number} memberCount - total members, computed server-side
  * @property {string} createdAt - ISO 8601 (OffsetDateTime)
  * @property {string} updatedAt - ISO 8601 (OffsetDateTime)

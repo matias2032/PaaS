@@ -32,4 +32,8 @@ public class ApiKeyResponseDTO {
     private OffsetDateTime expiresAt;
 
     private OffsetDateTime createdAt;
+
+    // NULL while ACTIVE and when revoked via the client-facing path
+    // (self-revocation has no reason).
+    private String revocationReason;
 }

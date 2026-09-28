@@ -4,6 +4,7 @@ import organizationRoutes from '../modules/organization/OrganizationRoutes';
 import billingRoutes from '../modules/billing/BillingRoutes';
 import projectRoutes from '../modules/project/ProjectRoutes';
 import serviceRoutes from '../modules/service/ServiceRoutes';
+import apiKeyRoutes from '../modules/api_key/ApiKeyRoutes';
 import ProtectedRoute from '../shared/layout/ProtectedRoute';
 import DashboardPage from '../modules/common/pages/DashboardPage';
 import ProfilePage from '../modules/auth/pages/ProfilePage';
@@ -14,6 +15,7 @@ const allRoutes = [
   ...billingRoutes,
   ...projectRoutes,
   ...serviceRoutes,
+  ...apiKeyRoutes,
   // Future modules append their routes here. Fully-protected modules
   // should follow organizationRoutes/billingRoutes' pattern of
   // self-wrapping each element in <ProtectedRoute>.

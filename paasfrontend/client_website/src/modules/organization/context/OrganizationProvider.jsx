@@ -146,6 +146,20 @@ export function OrganizationProvider({ children }) {
     }
   }
 
+  // Re-fetches one organization and merges it into `organizations`, so
+  // status/suspensionReason changes made platform-side show up without
+  // a full list reload. Doesn't touch isLoading/error: it's meant for
+  // silent background refreshes (after a 409, on focus, etc.).
+  const refreshOrganization = useCallback(async (publicUuid) => {
+    const fresh = await getOrganizationApi(publicUuid);
+    setOrganizations((prev) =>
+      prev.some((org) => org.publicUuid === publicUuid)
+        ? prev.map((org) => (org.publicUuid === publicUuid ? fresh : org))
+        : [...prev, fresh]
+    );
+    return fresh;
+  }, []);
+
   async function updateOrganization(publicUuid, data) {
     setIsLoading(true);
     setError(null);
@@ -269,6 +283,7 @@ export function OrganizationProvider({ children }) {
     fetchRoles,
     createOrganization,
     fetchOrganization,
+    refreshOrganization,
     updateOrganization,
     deactivateOrganization,
     reactivateOrganization,

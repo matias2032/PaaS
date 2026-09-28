@@ -1,3 +1,4 @@
+import 'dart:async' show TimeoutException;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -76,16 +77,27 @@ class ApiClient {
     });
   }
 
+  static Future<dynamic> delete(
+    String url, {
+    bool authenticated = true,
+  }) async {
+    return _send(() async {
+      final headers = await _headers(authenticated: authenticated);
+      return http.delete(Uri.parse(url), headers: headers).timeout(ApiConfig.timeout);
+    });
+  }
+
   static Future<dynamic> _send(Future<http.Response> Function() request) async {
     http.Response response;
     try {
       response = await request();
     } on ApiException {
       rethrow;
+    } on TimeoutException {
+      throw ApiException.timeout();
     } catch (_) {
       throw ApiException.network();
     }
-
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return null;
       return jsonDecode(response.body);

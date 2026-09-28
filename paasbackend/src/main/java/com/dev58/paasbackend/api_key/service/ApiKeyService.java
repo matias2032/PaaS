@@ -26,9 +26,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -38,6 +40,8 @@ public class ApiKeyService {
     private static final String ROLE_OWNER = "OWNER";
     private static final String KEY_PREFIX_MARKER = "sk_live_";
     private static final int PREFIX_VISIBLE_CHARS = 8;
+    private static final String SUSPENSION_REVOCATION_REASON =
+            "Revoked automatically: organization suspended by the platform";
 
     private final ApiKeyRepository apiKeyRepository;
     private final OrganizationRepository organizationRepository;
@@ -147,6 +151,53 @@ public class ApiKeyService {
                 .toList();
     }
 
+    // ==================== Runtime validation ====================
+
+    // Returns the key only if it is usable right now: exists, not REVOKED,
+    // not expired and its organization is ACTIVE. Empty for every failure
+    // on purpose, so callers can't leak WHY a key was refused. Suspending
+    // an organization therefore stops its keys immediately, and lifting
+    // the suspension restores them without touching any data.
+    // Caller note: apiKey.getOrganization() is LAZY, so read what you need
+    // (or map to a DTO) before leaving the transaction.
+    @Transactional
+    public Optional<ApiKey> validateApiKey(String rawKey) {
+        if (rawKey == null || !rawKey.startsWith(KEY_PREFIX_MARKER)) {
+            return Optional.empty();
+        }
+
+        Optional<ApiKey> found = apiKeyRepository.findByKeyHash(hashKey(rawKey));
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ApiKey apiKey = found.get();
+        OffsetDateTime now = OffsetDateTime.now();
+
+        boolean revoked = "REVOKED".equals(apiKey.getStatus());
+        boolean expired = apiKey.getExpiresAt() != null && !apiKey.getExpiresAt().isAfter(now);
+        boolean organizationActive = "ACTIVE".equals(apiKey.getOrganization().getStatus());
+        if (revoked || expired || !organizationActive) {
+            return Optional.empty();
+        }
+
+        // Throttled: at most one write per key per minute.
+        if (apiKey.getLastUsedAt() == null || apiKey.getLastUsedAt().isBefore(now.minusMinutes(1))) {
+            apiKey.setLastUsedAt(now);
+            apiKeyRepository.save(apiKey);
+        }
+        return Optional.of(apiKey);
+    }
+
+    // Called by OrganizationService.suspendOrganization inside the same
+    // transaction, so suspension and revocation succeed or fail together.
+    // No authorization here: the only caller is a PLATFORM_ADMIN action.
+    @Transactional
+    public int revokeAllActiveForOrganization(Organization organization) {
+        return apiKeyRepository.revokeAllActiveByOrganization(
+                organization.getIdOrganization(), SUSPENSION_REVOCATION_REASON);
+    }
+
     // ==================== Key generation ====================
 
     private String generateRawKey() {
@@ -230,6 +281,7 @@ public class ApiKeyService {
                 .lastUsedAt(apiKey.getLastUsedAt())
                 .expiresAt(apiKey.getExpiresAt())
                 .createdAt(apiKey.getCreatedAt())
+                .revocationReason(apiKey.getRevocationReason())
                 .build();
     }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/infrastructure_model.dart';
 import '../provider/infrastructure_provider.dart';
-import 'infrastructure_widgets.dart';
+import '../widget/common_widgets.dart' show ErrorBanner, ErrorState, StatusChip, StatusDropdown;
 
 // Used in two ways: from the sidebar (all servers, no filter) and pushed
 // from the Coolify instances screen (only that instance's servers).
@@ -85,7 +85,7 @@ class _ServersScreenState extends State<ServersScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (error != null && servers.isEmpty) {
-            return InfrastructureErrorState(message: error, onRetry: _load);
+            return ErrorState(message: error, onRetry: _load);
           }
           if (servers.isEmpty) {
             return const Center(child: Text('No servers yet.'));
@@ -95,7 +95,7 @@ class _ServersScreenState extends State<ServersScreen> {
             children: [
               if (provider.isLoadingServers) const LinearProgressIndicator(),
               if (error != null)
-                InfrastructureErrorBanner(
+                ErrorBanner(
                   message: error,
                   onDismiss: provider.clearErrors,
                 ),
@@ -133,7 +133,7 @@ class _ServersScreenState extends State<ServersScreen> {
                           if (network.isNotEmpty) Text(network),
                         ],
                       ),
-                      trailing: InfrastructureStatusDropdown(
+                      trailing: StatusDropdown(
                         value: s.status,
                         options: InfrastructureStatuses.server,
                         busy: provider.isUpdatingStatus(s.publicUuid),

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate,Link } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { useOrganization } from '../hooks/useOrganization';
+import { useOrganization, isOrganizationWritable } from '../hooks/useOrganization';
 import OrganizationForm from '../components/OrganizationForm';
 import MemberList from '../components/MemberList';
 import AddMemberForm from '../components/AddMemberForm';
@@ -100,7 +100,7 @@ const isOwner = currentMembership?.roleCode === 'OWNER';
 // by the backend with 409 while status is INACTIVE. Any member can
 // still leave the org themselves, but only while it's ACTIVE — see
 // MemberList's canLeave note.
-const isOrganizationActive = organization.status !== 'INACTIVE';
+const isOrganizationActive = isOrganizationWritable(organization);
 const canLeave = isOrganizationActive;
 
 async function handleRemove(member) {
@@ -217,7 +217,19 @@ async function handleDeactivate() {
           </div>
         )}
 
-        {!isOrganizationActive && (
+        {organization.status === 'SUSPENDED' && (
+          <div className="organization-detail-page__suspended-notice" role="alert">
+            <p>
+              This organization has been suspended by the platform. No changes are
+              allowed until the suspension is lifted. Contact support for help.
+            </p>
+            {organization.suspensionReason && (
+              <p>Reason: {organization.suspensionReason}</p>
+            )}
+          </div>
+        )}
+
+        {organization.status === 'INACTIVE' && (
           <div className="organization-detail-page__inactive-notice">
             <p>This organization has been deactivated. No changes are allowed until it's reactivated.</p>
             {isOwner && (
@@ -305,6 +317,21 @@ async function handleDeactivate() {
           // server-side now.
           <p className="organization-detail-page__git-connections-locked">
             Git connections are unavailable while this organization is inactive.
+          </p>
+        )}
+      </section>
+
+      <section className="organization-detail-page__api-keys">
+        <h2>API keys</h2>
+        {isOrganizationActive ? (
+          <Link to={`/organizations/${publicUuid}/api-keys`}>Manage API keys</Link>
+        ) : (
+          // Same gate as Billing/Projects/Git connections. Entry point
+          // hidden for UX only: ApiKeysPage still renders read-only if
+          // reached by direct URL, and the backend blocks create/revoke.
+          <p className="organization-detail-page__api-keys-locked">
+            API keys are unavailable while this organization is{' '}
+            {organization.status === 'SUSPENDED' ? 'suspended' : 'inactive'}.
           </p>
         )}
       </section>

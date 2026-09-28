@@ -1,5 +1,6 @@
 package com.dev58.paasbackend.organization.service;
 
+import com.dev58.paasbackend.api_key.service.ApiKeyService;
 import com.dev58.paasbackend.auth.entity.User;
 import com.dev58.paasbackend.auth.exception.UserNotFoundException;
 import com.dev58.paasbackend.auth.repository.UserRepository;
@@ -41,6 +42,7 @@ public class OrganizationService {
     private final OrganizationMemberRepository organizationMemberRepository;
     private final OrganizationRoleRepository organizationRoleRepository;
     private final UserRepository userRepository;
+    private final ApiKeyService apiKeyService;
 
     // ---- Create ----
 
@@ -173,6 +175,12 @@ public class OrganizationService {
         if ("INACTIVE".equals(organization.getStatus())) {
             throw new IllegalArgumentException("Organization is already inactive");
         }
+        // Otherwise an OWNER could deactivate a SUSPENDED organization and
+        // then reactivate it to ACTIVE, escaping the suspension.
+        if ("SUSPENDED".equals(organization.getStatus())) {
+            throw new OrganizationInactiveException(
+                    "This organization is suspended; no changes are allowed until the suspension is lifted");
+        }
 
         // Soft-delete. Reactivation is exposed via reactivateOrganization().
         organization.setStatus("INACTIVE");
@@ -205,21 +213,30 @@ public class OrganizationService {
     // against; the platform is acting on the organization, not a member
     // of it.
     @Transactional
-    public OrganizationResponseDTO suspendOrganization(UUID publicUuid, String reason) {
+    public OrganizationResponseDTO suspendOrganization(UUID publicUuid, String reason, boolean revokeApiKeys) {
         Organization organization = findOrganizationOrThrow(publicUuid);
 
         if ("SUSPENDED".equals(organization.getStatus())) {
             throw new OrganizationAlreadySuspendedException(
                     "Organization is already suspended: " + publicUuid);
         }
+        // Lifting a suspension always goes back to ACTIVE, which would
+        // silently reactivate an organization its owner deactivated.
+        if (!"ACTIVE".equals(organization.getStatus())) {
+            throw new IllegalArgumentException("Only ACTIVE organizations can be suspended");
+        }
 
         organization.setStatus("SUSPENDED");
         organization.setSuspensionReason(reason);
         organization = organizationRepository.save(organization);
 
+        if (revokeApiKeys) {
+            // Irreversible, same transaction as the status change.
+            apiKeyService.revokeAllActiveForOrganization(organization);
+        }
+
         return toResponseDTO(organization);
     }
-
     @Transactional
     public OrganizationResponseDTO liftSuspension(UUID publicUuid) {
         Organization organization = findOrganizationOrThrow(publicUuid);

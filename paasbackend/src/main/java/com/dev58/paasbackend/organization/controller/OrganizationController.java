@@ -65,7 +65,8 @@ public class OrganizationController {
     public OrganizationResponseDTO suspend(
             @PathVariable UUID publicUuid,
             @Valid @RequestBody OrganizationSuspendRequestDTO request) {
-        return organizationService.suspendOrganization(publicUuid, request.getReason());
+        return organizationService.suspendOrganization(
+                publicUuid, request.getReason(), request.isRevokeApiKeys());
     }
 
     @PostMapping("/{publicUuid}/lift-suspension")

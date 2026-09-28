@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/auth_provider.dart';
+import '/provider/api_key_provider.dart';
+import '/provider/audit_log_provider.dart';
+import '/provider/billing_provider.dart';
 import '/provider/infrastructure_provider.dart';
+import '/provider/organization_provider.dart';
+import '/screens/audit_logs_screen.dart';
 import '/screens/coolify_instances_screen.dart';
 import '/screens/login_screen.dart';
+import '/screens/organizations_screen.dart';
+import '/screens/plans_screen.dart';
 import '/screens/servers_screen.dart';
 import '/screens/staff_screen.dart';
 
@@ -44,6 +51,28 @@ class AppSidebar extends StatelessWidget {
               onNavigate(const StaffScreen());
             },
           ),
+        // SUPPORT or above (AdminOrganizationController: hasRole('SUPPORT')).
+        // Suspend / lift inside the detail screen are gated separately by
+        // isAtLeastPlatformAdmin.
+        if (authProvider.isAtLeastSupport)
+          ListTile(
+            leading: const Icon(Icons.apartment_outlined),
+            title: const Text('Organizations'),
+            onTap: () {
+              Navigator.of(context).pop();
+              onNavigate(const OrganizationsScreen());
+            },
+          ),
+        // SUPPORT or above (AuditLogController: hasRole('SUPPORT')).
+        if (authProvider.isAtLeastSupport)
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text('Audit log'),
+            onTap: () {
+              Navigator.of(context).pop();
+              onNavigate(const AuditLogsScreen());
+            },
+          ),
         // PLATFORM_ADMIN or above (InfrastructureController: hasRole('PLATFORM_ADMIN')).
         if (authProvider.isAtLeastPlatformAdmin) ...[
           ListTile(
@@ -62,19 +91,30 @@ class AppSidebar extends StatelessWidget {
               onNavigate(const ServersScreen());
             },
           ),
+          // BillingController catalog endpoints: hasRole('PLATFORM_ADMIN').
+          ListTile(
+            leading: const Icon(Icons.sell_outlined),
+            title: const Text('Plans'),
+            onTap: () {
+              Navigator.of(context).pop();
+              onNavigate(const PlansScreen());
+            },
+          ),
         ],
-        // Espaço reservado para as próximas etapas — cada item entra
-        // aqui condicionado ao platformRole mínimo exigido pelo backend
-        // correspondente (INFRASTRUCTURE/BILLING = PLATFORM_ADMIN,
-        // ORGANIZATION supervisão = SUPPORT, etc.), sem criar ficheiros
-        // novos de sidebar — este é o único.
+        // Next modules go here, each gated by the minimum platformRole
+        // required by its backend controller (ORGANIZATION supervision =
+        // SUPPORT, etc.). This is the only sidebar file.
         const Divider(),
         ListTile(
           leading: const Icon(Icons.logout),
-         title: const Text('Log out'),
+          title: const Text('Log out'),
           onTap: () async {
-            // Drop cached infrastructure data before the session ends.
+            // Drop cached admin data before the session ends.
             context.read<InfrastructureProvider>().reset();
+            context.read<BillingProvider>().reset();
+            context.read<OrganizationProvider>().reset();
+            context.read<ApiKeyProvider>().reset();
+            context.read<AuditLogProvider>().reset();
             await authProvider.logout();
             if (context.mounted) {
               Navigator.of(context).pushAndRemoveUntil(

@@ -6,7 +6,7 @@ tags:
 - git
 - hotspot
 created: 2026-09-22
-updated: 2026-09-24
+updated: 2026-09-28
 filenames:
 - paasbackend/src/main/java/com/dev58/paasbackend/service/service/ServiceService.java
 links: []
@@ -14,7 +14,7 @@ kind: code
 status: proposed
 superseded_by: null
 deprecated_at: null
-review_after: 2026-09-24
+review_after: 2026-09-28
 source_chat_id: null
 created_at: 2026-09-22T09:13:56.092943100+00:00
 summary: null

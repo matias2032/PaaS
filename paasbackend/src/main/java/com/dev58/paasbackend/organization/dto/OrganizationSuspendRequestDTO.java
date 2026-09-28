@@ -20,4 +20,9 @@ public class OrganizationSuspendRequestDTO {
     @NotBlank
     @Size(max = 2000)
     private String reason;
+
+    // Optional; absent = false. Irreversible: also revokes every ACTIVE
+    // API key of the organization in the same transaction.
+    private boolean revokeApiKeys;
 }
+

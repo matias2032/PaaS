@@ -12,3 +12,13 @@ export function useOrganization() {
   }
   return context;
 }
+
+/**
+ * Single decision point for "can this organization be written to".
+ * Based on `status` only, never on backend error messages (the backend
+ * throws the same OrganizationInactiveException for INACTIVE and
+ * SUSPENDED). Whitelist on purpose: any unknown status is read-only.
+ */
+export function isOrganizationWritable(organization) {
+  return organization?.status === 'ACTIVE';
+}

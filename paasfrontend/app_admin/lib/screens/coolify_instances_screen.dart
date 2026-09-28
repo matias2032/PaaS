@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/infrastructure_model.dart';
 import '../provider/infrastructure_provider.dart';
-import 'infrastructure_widgets.dart';
+import '../widget/common_widgets.dart' show ErrorBanner, ErrorState, StatusChip,StatusDropdown;
 import 'servers_screen.dart';
 
 class CoolifyInstancesScreen extends StatefulWidget {
@@ -67,7 +67,7 @@ class _CoolifyInstancesScreenState extends State<CoolifyInstancesScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (error != null && instances.isEmpty) {
-            return InfrastructureErrorState(message: error, onRetry: _load);
+            return ErrorState(message: error, onRetry: _load);
           }
           if (instances.isEmpty) {
             return const Center(child: Text('No Coolify instances yet.'));
@@ -78,7 +78,7 @@ class _CoolifyInstancesScreenState extends State<CoolifyInstancesScreen> {
               if (provider.isLoadingCoolifyInstances)
                 const LinearProgressIndicator(),
               if (error != null)
-                InfrastructureErrorBanner(
+                ErrorBanner(
                   message: error,
                   onDismiss: provider.clearErrors,
                 ),
@@ -92,7 +92,7 @@ class _CoolifyInstancesScreenState extends State<CoolifyInstancesScreen> {
                       leading: const Icon(Icons.cloud_outlined),
                       title: Text(instance.name),
                       subtitle: Text(instance.baseUrl),
-                      trailing: InfrastructureStatusDropdown(
+                      trailing: StatusDropdown(
                         value: instance.status,
                         options: InfrastructureStatuses.coolifyInstance,
                         busy: provider.isUpdatingStatus(instance.publicUuid),

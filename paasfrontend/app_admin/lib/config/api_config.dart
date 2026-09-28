@@ -34,13 +34,17 @@ class ApiConfig {
 
   static const String _adminOrganizations = '/api/admin/organizations';
 
+  // Suspend / lift-suspension live on the regular organization controller
+  // (hasRole('PLATFORM_ADMIN')), not under /api/admin.
+  static const String _organizations = '/api/organizations';
+
   // ── Relative paths — INFRASTRUCTURE ─────────────────────────────────
 
   static const String _infra = '/api/infrastructure';
 
-  // ── Caminhos relativos — BILLING (catálogo, vista admin) ──────────
+  // ── Relative paths — BILLING (catalog, admin view) ────────────────
 
-  static const String _plansAll = '/api/plans/all';
+  static const String _plans = '/api/plans';
 
   // ── URLs completas — AUTH ───────────────────────────────────────────
 
@@ -71,6 +75,19 @@ class ApiConfig {
   static String adminOrganizationApiKeysUrl(String orgPublicUuid) =>
       '$baseUrl$_adminOrganizations/$orgPublicUuid/api-keys';
 
+  static String adminApiKeyRevokeUrl(String keyPublicUuid) =>
+    '$baseUrl/api/admin/api-keys/$keyPublicUuid/revoke';    
+
+  static String get adminAuditLogsUrl => '$baseUrl/api/admin/audit-logs';
+
+      
+
+  static String organizationSuspendUrl(String publicUuid) =>
+      '$baseUrl$_organizations/$publicUuid/suspend';
+
+  static String organizationLiftSuspensionUrl(String publicUuid) =>
+      '$baseUrl$_organizations/$publicUuid/lift-suspension';
+
   // ── Full URLs — INFRASTRUCTURE ──────────────────────────────────────
 
   static String get coolifyInstancesUrl => '$baseUrl$_infra/coolify-instances';
@@ -94,9 +111,27 @@ class ApiConfig {
 
   static String get serverProvidersUrl => '$baseUrl$_infra/server-providers';
 
-  // ── URLs completas — BILLING ─────────────────────────────────────────
+  // ── Full URLs — BILLING ───────────────────────────────────────────────
 
-  static String get plansAllUrl => '$baseUrl$_plansAll';
+  static String get plansUrl => '$baseUrl$_plans';
+
+  static String get plansAllUrl => '$baseUrl$_plans/all';
+
+  // PUT (update) and DELETE (deactivate) share this URL.
+  static String planByPublicUuidUrl(String publicUuid) =>
+      '$plansUrl/$publicUuid';
+
+  static String planReactivateUrl(String publicUuid) =>
+      '$plansUrl/$publicUuid/reactivate';
+
+  static String planArchiveUrl(String publicUuid) =>
+      '$plansUrl/$publicUuid/archive';
+
+  static String planResourceLimitsUrl(String publicUuid) =>
+      '$plansUrl/$publicUuid/resource-limits';
+
+  static String planPricesUrl(String publicUuid) =>
+      '$plansUrl/$publicUuid/prices';
 
   // ── Configurações gerais ──────────────────────────────────────────
 
