@@ -2,12 +2,15 @@ package com.dev58.paasbackend.audit_log.entity;
 
 import com.dev58.paasbackend.auth.entity.User;
 import com.dev58.paasbackend.organization.entity.Organization;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -60,6 +63,7 @@ public class AuditLog {
 
     // inet no Postgres — mapeado como String; converter para InetAddress
     // não traz vantagem aqui (nunca é usado para range queries).
+    @ColumnTransformer(write = "?::inet")
     @Column(name = "ip_address", columnDefinition = "inet")
     private String ipAddress;
 
@@ -71,7 +75,7 @@ public class AuditLog {
     // Map<String,Object>: mantém o Service que chama record() livre de
     // decidir a própria serialização (json já pronto), sem acoplar esta
     // entity a uma lib de JSON específica.
-    @JdbcTypeCode(SqlTypes.JSON)
+    @ColumnTransformer(write = "?::jsonb")
     @Column(name = "metadata", columnDefinition = "jsonb")
     private String metadata;
 

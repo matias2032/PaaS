@@ -1,6 +1,7 @@
 package com.dev58.paasbackend.organization.service;
 
 import com.dev58.paasbackend.api_key.service.ApiKeyService;
+import com.dev58.paasbackend.audit_log.service.AuditLogService;
 import com.dev58.paasbackend.auth.entity.User;
 import com.dev58.paasbackend.auth.exception.UserNotFoundException;
 import com.dev58.paasbackend.auth.repository.UserRepository;
@@ -43,7 +44,7 @@ public class OrganizationService {
     private final OrganizationRoleRepository organizationRoleRepository;
     private final UserRepository userRepository;
     private final ApiKeyService apiKeyService;
-
+    private final AuditLogService auditLogService;
     // ---- Create ----
 
     @Transactional
@@ -70,6 +71,10 @@ public class OrganizationService {
                 .organizationRole(ownerRole)
                 .build();
         organizationMemberRepository.save(ownerMembership);
+
+        auditLogService.record(organization, "ORGANIZATION_CREATED", "ORGANIZATION",
+                String.valueOf(organization.getPublicUuid()),
+                AuditLogService.meta("name", organization.getName(), "slug", organization.getSlug()));
 
         return toResponseDTO(organization);
     }
@@ -186,6 +191,10 @@ public class OrganizationService {
         organization.setStatus("INACTIVE");
         organization = organizationRepository.save(organization);
 
+        auditLogService.record(organization, "ORGANIZATION_DEACTIVATED", "ORGANIZATION",
+                organization.getPublicUuid().toString(),
+                AuditLogService.meta("oldStatus", "ACTIVE", "newStatus", "INACTIVE"));
+
         return toResponseDTO(organization);
     }
 
@@ -203,6 +212,10 @@ public class OrganizationService {
         // is a separate concept and is not touched by this method.
         organization.setStatus("ACTIVE");
         organization = organizationRepository.save(organization);
+
+        auditLogService.record(organization, "ORGANIZATION_REACTIVATED", "ORGANIZATION",
+                organization.getPublicUuid().toString(),
+                AuditLogService.meta("oldStatus", "INACTIVE", "newStatus", "ACTIVE"));
 
         return toResponseDTO(organization);
     }
@@ -230,10 +243,20 @@ public class OrganizationService {
         organization.setSuspensionReason(reason);
         organization = organizationRepository.save(organization);
 
+        int revokedKeys = 0;
         if (revokeApiKeys) {
             // Irreversible, same transaction as the status change.
-            apiKeyService.revokeAllActiveForOrganization(organization);
+            revokedKeys = apiKeyService.revokeAllActiveForOrganization(organization);
         }
+
+        auditLogService.record(organization, "ORGANIZATION_SUSPENDED", "ORGANIZATION",
+                organization.getPublicUuid().toString(),
+                AuditLogService.meta(
+                        "oldStatus", "ACTIVE",
+                        "newStatus", "SUSPENDED",
+                        "reason", reason,
+                        "revokeApiKeys", revokeApiKeys,
+                        "revokedApiKeys", revokedKeys));
 
         return toResponseDTO(organization);
     }
@@ -245,9 +268,15 @@ public class OrganizationService {
             throw new OrganizationNotSuspendedException("Organization is not suspended: " + publicUuid);
         }
 
+        String previousReason = organization.getSuspensionReason();
         organization.setStatus("ACTIVE");
         organization.setSuspensionReason(null);
         organization = organizationRepository.save(organization);
+
+        auditLogService.record(organization, "ORGANIZATION_SUSPENSION_LIFTED", "ORGANIZATION",
+                organization.getPublicUuid().toString(),
+                AuditLogService.meta("oldStatus", "SUSPENDED", "newStatus", "ACTIVE",
+                        "previousReason", previousReason));
 
         return toResponseDTO(organization);
     }

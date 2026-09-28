@@ -8,6 +8,7 @@ import com.dev58.paasbackend.api_key.entity.ApiKey;
 import com.dev58.paasbackend.api_key.exception.ApiKeyNameAlreadyExistsException;
 import com.dev58.paasbackend.api_key.exception.ApiKeyNotFoundException;
 import com.dev58.paasbackend.api_key.repository.ApiKeyRepository;
+import com.dev58.paasbackend.audit_log.service.AuditLogService;
 import com.dev58.paasbackend.auth.entity.User;
 import com.dev58.paasbackend.auth.exception.UserNotFoundException;
 import com.dev58.paasbackend.auth.repository.UserRepository;
@@ -47,6 +48,7 @@ public class ApiKeyService {
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -79,7 +81,14 @@ public class ApiKeyService {
                 .keyPrefix(keyPrefix)
                 .expiresAt(request.getExpiresAt())
                 .build();
-        apiKey = apiKeyRepository.save(apiKey);
+           apiKey = apiKeyRepository.save(apiKey);
+
+        auditLogService.record(organization, "API_KEY_CREATED", "API_KEY",
+                String.valueOf(apiKey.getPublicUuid()),
+                AuditLogService.meta(
+                        "name", apiKey.getName(),
+                        "keyPrefix", apiKey.getKeyPrefix(),
+                        "expiresAt", apiKey.getExpiresAt() != null ? apiKey.getExpiresAt().toString() : null));
 
         // Única resposta em toda a API onde rawKey aparece — nunca mais
         // recuperável depois deste ponto (só key_hash fica persistido).
@@ -114,6 +123,10 @@ public class ApiKeyService {
         apiKey.setStatus("REVOKED");
         apiKey = apiKeyRepository.save(apiKey);
 
+        auditLogService.record(organization, "API_KEY_REVOKED", "API_KEY",
+                apiKey.getPublicUuid().toString(),
+                AuditLogService.meta("name", apiKey.getName(), "keyPrefix", apiKey.getKeyPrefix()));
+
         return toResponseDTO(apiKey);
     }
 
@@ -134,6 +147,11 @@ public class ApiKeyService {
         apiKey.setStatus("REVOKED");
         apiKey.setRevocationReason(request.getReason());
         apiKey = apiKeyRepository.save(apiKey);
+
+        auditLogService.record(apiKey.getOrganization(), "API_KEY_REVOKED_BY_ADMIN", "API_KEY",
+                apiKey.getPublicUuid().toString(),
+                AuditLogService.meta("name", apiKey.getName(), "keyPrefix", apiKey.getKeyPrefix(),
+                        "reason", request.getReason()));
 
         return toResponseDTO(apiKey);
     }
@@ -194,8 +212,15 @@ public class ApiKeyService {
     // No authorization here: the only caller is a PLATFORM_ADMIN action.
     @Transactional
     public int revokeAllActiveForOrganization(Organization organization) {
-        return apiKeyRepository.revokeAllActiveByOrganization(
+        int revoked = apiKeyRepository.revokeAllActiveByOrganization(
                 organization.getIdOrganization(), SUSPENSION_REVOCATION_REASON);
+
+        if (revoked > 0) {
+            auditLogService.record(organization, "API_KEY_BULK_REVOKED", "ORGANIZATION",
+                    organization.getPublicUuid().toString(),
+                    AuditLogService.meta("revokedCount", revoked, "reason", SUSPENSION_REVOCATION_REASON));
+        }
+        return revoked;
     }
 
     // ==================== Key generation ====================
