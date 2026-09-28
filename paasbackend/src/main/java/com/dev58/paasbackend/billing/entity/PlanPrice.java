@@ -31,8 +31,9 @@ public class PlanPrice {
     @Column(name = "id_plan_price")
     private Long idPlanPrice;
 
-    @Column(name = "public_uuid", nullable = false, updatable = false)
-    private UUID publicUuid;
+    @Builder.Default
+    @Column(name = "public_uuid", nullable = false, updatable = false, unique = true)
+    private UUID publicUuid = UUID.randomUUID();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_plan", nullable = false)

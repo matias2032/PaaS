@@ -117,7 +117,25 @@ class PlanDetailScreen extends StatelessWidget {
               label: const Text('Edit'),
             ),
             children: [
-              _InfoRow('Status', child: StatusChip(status: plan.status)),
+  _InfoRow('Status', child: StatusChip(status: plan.status)),
+              if (canDeactivate || canReactivate)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Active'),
+                  subtitle: Text(
+                    canDeactivate
+                        ? 'Visible to customers and open to new subscriptions.'
+                        : 'Hidden from customers. Existing subscriptions are kept.',
+                  ),
+                  value: canDeactivate,
+                  onChanged: busy
+                      ? null
+                      : (on) => _runStatusAction(
+                            context,
+                            plan,
+                            on ? 'reactivate' : 'deactivate',
+                          ),
+                ),
               _InfoRow('Name', value: plan.name),
               _InfoRow('Slug', value: plan.slug),
               _InfoRow('Description', value: plan.description ?? '—'),

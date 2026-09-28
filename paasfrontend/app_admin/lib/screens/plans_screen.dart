@@ -3,9 +3,8 @@ import 'package:provider/provider.dart';
 import '../model/billing_model.dart';
 import '../provider/billing_provider.dart';
 import '../widget/common_widgets.dart' show ErrorBanner, ErrorState, StatusChip;
+import 'create_plan_screen.dart';
 import 'plan_detail_screen.dart';
-import 'plan_dialogs.dart';
-
 // Plan catalog (admin view): every plan regardless of status. Tapping a
 // plan drills down to PlanDetailScreen. Nested Scaffold inside the
 // HomeScreen body, same as StaffScreen.
@@ -25,11 +24,10 @@ class _PlansScreenState extends State<PlansScreen> {
     });
   }
 
-  Future<void> _openCreateDialog() async {
+  Future<void> _openCreateScreen() async {
     context.read<BillingProvider>().clearErrors();
-    await showDialog<bool>(
-      context: context,
-      builder: (_) => const CreatePlanDialog(),
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CreatePlanScreen()),
     );
   }
 
@@ -39,7 +37,7 @@ class _PlansScreenState extends State<PlansScreen> {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openCreateDialog,
+               onPressed: _openCreateScreen,
         icon: const Icon(Icons.add),
         label: const Text('New plan'),
       ),

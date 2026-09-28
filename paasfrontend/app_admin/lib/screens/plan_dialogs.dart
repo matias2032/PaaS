@@ -428,3 +428,10 @@ class _AddPriceDialogState extends State<AddPriceDialog> {
     );
   }
 }
+
+// Public entry points for the create-plan page.
+String? validatePlanName(String? v) => _validateName(v);
+String? validateWholeNumber(String? v, {bool required = true}) =>
+    _validateInt(v, required: required);
+String? validateCpuLimit(String? v) => _validateCpu(v);
+

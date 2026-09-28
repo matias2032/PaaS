@@ -24,8 +24,9 @@ public class Plan {
     @Column(name = "id_plan")
     private Long idPlan;
 
-    @Column(name = "public_uuid", nullable = false, updatable = false)
-    private UUID publicUuid;
+    @Builder.Default
+    @Column(name = "public_uuid", nullable = false, updatable = false, unique = true)
+    private UUID publicUuid = UUID.randomUUID();
 
     @Column(name = "name", nullable = false, length = 100)
     private String name;

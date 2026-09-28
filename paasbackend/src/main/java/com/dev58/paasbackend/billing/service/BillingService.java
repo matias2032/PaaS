@@ -116,6 +116,9 @@ public class BillingService {
     @Transactional
     public PlanResponseDTO deactivatePlan(UUID publicUuid) {
         Plan plan = findPlanOrThrow(publicUuid);
+        if (!"ACTIVE".equals(plan.getStatus())) {
+            throw new IllegalArgumentException("Only ACTIVE plans can be deactivated");
+        }
         plan.setStatus("INACTIVE");
         return toPlanResponseDTO(planRepository.save(plan));
     }
@@ -123,6 +126,9 @@ public class BillingService {
     @Transactional
     public PlanResponseDTO reactivatePlan(UUID publicUuid) {
         Plan plan = findPlanOrThrow(publicUuid);
+        if (!"INACTIVE".equals(plan.getStatus())) {
+            throw new IllegalArgumentException("Only INACTIVE plans can be reactivated");
+        }
         plan.setStatus("ACTIVE");
         return toPlanResponseDTO(planRepository.save(plan));
     }
@@ -199,8 +205,9 @@ public class BillingService {
             throw new SubscriptionAlreadyExistsException("Organization already has an active or pending subscription");
         }
 
-        PlanPrice planPrice = planPriceRepository.findByPublicUuid(request.getPlanPricePublicUuid())
+ PlanPrice planPrice = planPriceRepository.findByPublicUuid(request.getPlanPricePublicUuid())
                 .orElseThrow(() -> new PlanPriceNotFoundException("Plan price not found: " + request.getPlanPricePublicUuid()));
+        requirePlanAvailable(planPrice);
 
         Subscription subscription = Subscription.builder()
                 .organization(organization)
@@ -313,6 +320,14 @@ public class BillingService {
         OrganizationMember membership = requireMembership(organization, currentUserId);
         if (!ROLE_OWNER.equals(membership.getOrganizationRole().getCode())) {
             throw new PermissionDeniedException("Only OWNER can manage billing for this organization");
+        }
+    }
+
+        // Only ACTIVE plans accept new subscriptions or switches. Existing
+    // subscriptions on a deactivated plan are left untouched.
+    private void requirePlanAvailable(PlanPrice planPrice) {
+        if (!"ACTIVE".equals(planPrice.getPlan().getStatus())) {
+            throw new IllegalArgumentException("This plan is not available for new subscriptions");
         }
     }
 
