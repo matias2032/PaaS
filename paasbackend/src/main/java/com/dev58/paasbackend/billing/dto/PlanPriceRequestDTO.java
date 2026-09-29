@@ -3,6 +3,7 @@ package com.dev58.paasbackend.billing.dto;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,6 +23,7 @@ import java.math.BigDecimal;
 public class PlanPriceRequestDTO {
 
     @NotBlank
+    @Pattern(regexp = "MONTHLY|YEARLY", message = "billingCycle must be MONTHLY or YEARLY")
     private String billingCycle;
 
     @NotNull

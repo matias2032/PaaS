@@ -33,6 +33,16 @@ public class BillingController {
 
     // ---- Plans ----
 
+@GetMapping("/api/plans")
+public List<PlanResponseDTO> listActivePlans() {
+    return billingService.listActivePlans();
+}
+
+@GetMapping("/api/plans/{publicUuid}")
+public PlanResponseDTO getPlan(@PathVariable UUID publicUuid) {
+    return billingService.getPlan(publicUuid);
+}
+
 @PostMapping("/api/plans")
 @ResponseStatus(HttpStatus.CREATED)
 @PreAuthorize("hasRole('PLATFORM_ADMIN')")

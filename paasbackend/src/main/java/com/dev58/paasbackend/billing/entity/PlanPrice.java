@@ -11,11 +11,17 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-// No public_uuid and no updated_at (see schema: plan_prices has no
-// updated_at column) — a price row is treated as an immutable
-// historical fact once created; "changing the price" means inserting
-// a new row and closing the old one's effectiveUntil, not updating
-// this one in place.
+// No updated_at (plan_prices has no such column): a price row is an
+// immutable historical fact once created. "Changing the price" means
+// inserting a new row and closing the old one's effectiveUntil, never
+// updating it in place.
+//
+// PRODUCT DECISION (grandfathering): an existing Subscription keeps
+// pointing at the PlanPrice it subscribed to, so it is billed at that
+// price on every renewal even after the plan gets a new price. Only new
+// subscriptions and plan switches pick up the current price. This is
+// intentional, not a side effect: nothing moves a subscription to a newer
+// PlanPrice on its own (see PaymentService.chargeForRenewal).
 @Entity
 @Table(name = "plan_prices", schema = "paas_platform")
 @Getter

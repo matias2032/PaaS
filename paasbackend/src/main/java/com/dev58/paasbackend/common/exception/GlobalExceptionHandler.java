@@ -21,11 +21,18 @@ import com.dev58.paasbackend.organization.exception.OrganizationMemberNotFoundEx
 import com.dev58.paasbackend.organization.exception.OrganizationNotFoundException;
 import com.dev58.paasbackend.organization.exception.OrganizationSlugAlreadyExistsException;
 import com.dev58.paasbackend.organization.exception.PermissionDeniedException;
+import com.dev58.paasbackend.billing.exception.PlanArchivedException;
 import com.dev58.paasbackend.billing.exception.PlanNotFoundException;
 import com.dev58.paasbackend.billing.exception.PlanPriceNotFoundException;
 import com.dev58.paasbackend.billing.exception.PlanSlugAlreadyExistsException;
 import com.dev58.paasbackend.billing.exception.SubscriptionAlreadyExistsException;
 import com.dev58.paasbackend.billing.exception.SubscriptionNotFoundException;
+import com.dev58.paasbackend.payment.exception.InvoiceAlreadyPaidException;
+import com.dev58.paasbackend.payment.exception.InvoiceNotFoundException;
+import com.dev58.paasbackend.payment.exception.PaymentAlreadyInProgressException;
+import com.dev58.paasbackend.payment.exception.PaymentAlreadyRefundedException;
+import com.dev58.paasbackend.payment.exception.PaymentMethodNotFoundException;
+import com.dev58.paasbackend.payment.exception.PaymentNotFoundException;
 import com.dev58.paasbackend.project.exception.GitConnectionNotFoundException;
 import com.dev58.paasbackend.project.exception.GitProviderNotFoundException;
 import com.dev58.paasbackend.project.exception.ProjectNotFoundException;
@@ -41,6 +48,7 @@ import com.dev58.paasbackend.service.exception.ServiceTypeNotFoundException;
 import com.dev58.paasbackend.organization.exception.OrganizationAlreadySuspendedException;
 import com.dev58.paasbackend.organization.exception.OrganizationNotSuspendedException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -134,7 +142,7 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
     }
 
-    @ExceptionHandler({OrganizationSlugAlreadyExistsException.class, OrganizationMemberAlreadyExistsException.class, OrganizationInactiveException.class, OrganizationNotSuspendedException.class, OrganizationAlreadySuspendedException.class, PlanSlugAlreadyExistsException.class, SubscriptionAlreadyExistsException.class})
+    @ExceptionHandler({OrganizationSlugAlreadyExistsException.class, OrganizationMemberAlreadyExistsException.class, OrganizationInactiveException.class, OrganizationNotSuspendedException.class, OrganizationAlreadySuspendedException.class, PlanSlugAlreadyExistsException.class, SubscriptionAlreadyExistsException.class, PlanArchivedException.class})
     public ResponseEntity<ErrorResponseDTO> handleOrganizationConflict(
             RuntimeException ex, HttpServletRequest request
     ) {
@@ -152,6 +160,20 @@ public class GlobalExceptionHandler {
             RuntimeException ex, HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler({InvoiceNotFoundException.class, PaymentNotFoundException.class, PaymentMethodNotFoundException.class})
+    public ResponseEntity<ErrorResponseDTO> handlePaymentNotFound(
+            RuntimeException ex, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler({InvoiceAlreadyPaidException.class, PaymentAlreadyRefundedException.class, PaymentAlreadyInProgressException.class})
+    public ResponseEntity<ErrorResponseDTO> handlePaymentConflict(
+            RuntimeException ex, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
     @ExceptionHandler({ProjectNotFoundException.class, GitProviderNotFoundException.class, GitConnectionNotFoundException.class})
@@ -247,6 +269,21 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "Access denied", request);
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex, HttpServletRequest request
+    ) {
+        // A DB constraint rejected the write (unique index, check, FK). The
+        // service layer should catch the expected cases first; this is the
+        // net for the races and gaps it cannot see, so they surface as a
+        // conflict instead of a 500. The message is deliberately generic
+        // (never expose the constraint name); the cause is logged for us.
+        log.warn("Data integrity violation on {} {}: {}",
+                request.getMethod(), request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+        return buildResponse(HttpStatus.CONFLICT,
+                "The request conflicts with existing data", request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleUnexpected(
             Exception ex, HttpServletRequest request
@@ -256,6 +293,13 @@ public class GlobalExceptionHandler {
         // response shape consistent instead of leaking a stack trace
         // or Spring's default HTML error page.
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request);
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponseDTO> handleMethodNotSupported(
+            org.springframework.web.HttpRequestMethodNotSupportedException ex, HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request);
     }
 
     private ResponseEntity<ErrorResponseDTO> buildResponse(

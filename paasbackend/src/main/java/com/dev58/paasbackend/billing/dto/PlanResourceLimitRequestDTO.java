@@ -30,15 +30,14 @@ public class PlanResourceLimitRequestDTO {
     @PositiveOrZero
     private Long storageLimitMb;
 
-    @NotNull
+    // Optional: omitted/null means "no limit". Non-null values must be >= 0
+    // (@PositiveOrZero accepts null).
     @PositiveOrZero
     private Integer maxProjects;
 
-    @NotNull
     @PositiveOrZero
     private Integer maxServices;
 
-    @NotNull
     @PositiveOrZero
     private Integer maxDomains;
 

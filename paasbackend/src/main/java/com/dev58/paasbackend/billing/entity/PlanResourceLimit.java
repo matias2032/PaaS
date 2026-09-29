@@ -41,13 +41,19 @@ public class PlanResourceLimit {
     @Column(name = "storage_limit_mb", nullable = false)
     private Long storageLimitMb;
 
-    @Column(name = "max_projects", nullable = false)
+    // NULL = no limit (see V4 migration).
+    // TECHNICAL DEBT (high priority, NOT solved by making these optional):
+    // nothing enforces these limits against real usage yet. ProjectService and
+    // ServiceService never compare the organization's Project/Service/Domain
+    // counts with the subscribed plan, so today they are stored and displayed
+    // but not applied. When enforcement is built, NULL must be read as unlimited.
+    @Column(name = "max_projects")
     private Integer maxProjects;
 
-    @Column(name = "max_services", nullable = false)
+    @Column(name = "max_services")
     private Integer maxServices;
 
-    @Column(name = "max_domains", nullable = false)
+    @Column(name = "max_domains")
     private Integer maxDomains;
 
     @Column(name = "max_environment_variables")

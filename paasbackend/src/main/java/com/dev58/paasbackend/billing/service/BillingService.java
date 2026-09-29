@@ -5,6 +5,7 @@ import com.dev58.paasbackend.billing.entity.Plan;
 import com.dev58.paasbackend.billing.entity.PlanPrice;
 import com.dev58.paasbackend.billing.entity.PlanResourceLimit;
 import com.dev58.paasbackend.billing.entity.Subscription;
+import com.dev58.paasbackend.billing.exception.PlanArchivedException;
 import com.dev58.paasbackend.billing.exception.PlanNotFoundException;
 import com.dev58.paasbackend.billing.exception.PlanPriceNotFoundException;
 import com.dev58.paasbackend.billing.exception.PlanSlugAlreadyExistsException;
@@ -21,12 +22,15 @@ import com.dev58.paasbackend.organization.exception.OrganizationNotFoundExceptio
 import com.dev58.paasbackend.organization.exception.PermissionDeniedException;
 import com.dev58.paasbackend.organization.repository.OrganizationMemberRepository;
 import com.dev58.paasbackend.organization.repository.OrganizationRepository;
+import com.dev58.paasbackend.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.Optional;
 
@@ -53,12 +57,16 @@ public class BillingService {
     private static final List<String> LIVE_SUBSCRIPTION_STATUSES =
             List.of("PENDING", "ACTIVE", "PAST_DUE", "SUSPENDED");
 
+    // Mirrors ck_plan_prices_cycle (Phase 3 migration V3).
+    private static final Set<String> SELLABLE_BILLING_CYCLES = Set.of("MONTHLY", "YEARLY");
+
     private final PlanRepository planRepository;
     private final PlanResourceLimitRepository planResourceLimitRepository;
     private final PlanPriceRepository planPriceRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
+    private final PaymentService paymentService;
 
     // ---- Plan: Create/Read/Update ----
 
@@ -103,6 +111,7 @@ public class BillingService {
     @Transactional
     public PlanResponseDTO updatePlan(UUID publicUuid, PlanRequestDTO request) {
         Plan plan = findPlanOrThrow(publicUuid);
+        requirePlanNotArchived(plan);
 
         plan.setName(request.getName());
         plan.setDescription(request.getDescription());
@@ -146,6 +155,7 @@ public class BillingService {
     @Transactional
     public PlanResourceLimitResponseDTO setResourceLimits(UUID planPublicUuid, PlanResourceLimitRequestDTO request) {
         Plan plan = findPlanOrThrow(planPublicUuid);
+        requirePlanNotArchived(plan);
 
         PlanResourceLimit limits = planResourceLimitRepository.findByPlan_IdPlan(plan.getIdPlan())
                 .orElseGet(() -> PlanResourceLimit.builder().plan(plan).build());
@@ -153,6 +163,9 @@ public class BillingService {
         limits.setCpuLimit(request.getCpuLimit());
         limits.setMemoryLimitMb(request.getMemoryLimitMb());
         limits.setStorageLimitMb(request.getStorageLimitMb());
+        // PUT replaces the whole set: an omitted max* field is stored as NULL
+        // (= unlimited). TECHNICAL DEBT: these limits are not enforced against
+        // real Project/Service usage yet (see PlanResourceLimit).
         limits.setMaxProjects(request.getMaxProjects());
         limits.setMaxServices(request.getMaxServices());
         limits.setMaxDomains(request.getMaxDomains());
@@ -167,11 +180,16 @@ public class BillingService {
 
     @Transactional
     public PlanPriceResponseDTO addPrice(UUID planPublicUuid, PlanPriceRequestDTO request) {
+        if (!SELLABLE_BILLING_CYCLES.contains(request.getBillingCycle())) {
+            throw new IllegalArgumentException("billingCycle must be MONTHLY or YEARLY");
+        }
         Plan plan = findPlanOrThrow(planPublicUuid);
+        requirePlanNotArchived(plan);
         OffsetDateTime now = OffsetDateTime.now();
 
-        // Fecha o preço corrente desse ciclo, se existir — nunca se
-        // atualiza um PlanPrice em vigor (ver nota na entidade).
+        // Closes the current price of this cycle, if any; a PlanPrice in
+        // force is never updated. Existing subscriptions are NOT migrated to
+        // the new price: they keep the old one (grandfathering, see PlanPrice).
         planPriceRepository
                 .findByPlan_IdPlanAndBillingCycleAndEffectiveUntilIsNull(plan.getIdPlan(), request.getBillingCycle())
                 .ifPresent(current -> {
@@ -214,6 +232,7 @@ public class BillingService {
                 .planPrice(planPrice)
                 .build();
         subscription = subscriptionRepository.save(subscription);
+        startSubscription(subscription);
 
         return toSubscriptionResponseDTO(subscription);
     }
@@ -252,6 +271,8 @@ public class BillingService {
         subscription.setCancelledAt(OffsetDateTime.now());
         subscription.setAutoRenew(false);
         subscription = subscriptionRepository.save(subscription);
+        paymentService.voidOpenInvoices(subscription, "Subscription cancelled");
+        paymentService.voidOpenInvoices(subscription, "Subscription cancelled");
 
         return toSubscriptionResponseDTO(subscription);
     }
@@ -286,7 +307,10 @@ public class BillingService {
             current.setStatus("CANCELLED");
             current.setCancelledAt(OffsetDateTime.now());
             current.setAutoRenew(false);
-            subscriptionRepository.save(current);
+            // Flushed now so the old subscription leaves the "live" unique
+            // index before a free replacement is activated below.
+            subscriptionRepository.saveAndFlush(current);
+            paymentService.voidOpenInvoices(current, "Subscription replaced by another plan");
         }
 
         Subscription newSubscription = Subscription.builder()
@@ -294,8 +318,134 @@ public class BillingService {
                 .planPrice(newPlanPrice)
                 .build();
         newSubscription = subscriptionRepository.save(newSubscription);
+        startSubscription(newSubscription);
 
         return toSubscriptionResponseDTO(newSubscription);
+    }
+
+    // ---- Renewal (system action) ----
+
+    /**
+     * Renews one subscription whose period ended. Called only by
+     * SubscriptionRenewalJob: a system action, so no user and no
+     * membership check, and it is not exposed through any controller.
+     *
+     * Outcomes:
+     *  - plan no longer ACTIVE -> subscription becomes EXPIRED (the
+     *    customer must pick another plan); never throws in that case,
+     *    otherwise the daily job would retry and fail forever;
+     *  - charge succeeded -> next period, stays ACTIVE;
+     *  - charge failed -> PAST_DUE, period untouched.
+     *
+     * TODO(gateway): only ACTIVE subscriptions are renewed and PAST_DUE
+     * ones are never retried. A retry/dunning flow arrives with the real
+     * gateway, since nothing can fail before that.
+     */
+    @Transactional
+    public SubscriptionResponseDTO renewSubscription(UUID subscriptionPublicUuid) {
+        Subscription subscription = subscriptionRepository.findByPublicUuid(subscriptionPublicUuid)
+                .orElseThrow(() -> new SubscriptionNotFoundException(
+                        "Subscription not found: " + subscriptionPublicUuid));
+
+        if (!"ACTIVE".equals(subscription.getStatus())) {
+            throw new IllegalArgumentException("Only ACTIVE subscriptions can be renewed");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime previousEnd = subscription.getCurrentPeriodEnd();
+
+        // Guards against a double renewal (job re-run, overlapping runs).
+        if (previousEnd != null && previousEnd.isAfter(now)) {
+            throw new IllegalArgumentException("Subscription is not due for renewal yet");
+        }
+
+        PlanPrice planPrice = subscription.getPlanPrice();
+
+        if (!isPlanAvailable(planPrice)) {
+            subscription.setStatus("EXPIRED");
+            subscription.setAutoRenew(false);
+            return toSubscriptionResponseDTO(subscriptionRepository.save(subscription));
+        }
+
+        // Free plans have nothing to invoice: they only move to the next period.
+        if (planPrice.getAmount().signum() > 0) {
+            PaymentService.RenewalChargeResult result = paymentService.chargeForRenewal(subscription);
+
+            if (!result.success()) {
+                subscription.setStatus("PAST_DUE");
+                return toSubscriptionResponseDTO(subscriptionRepository.save(subscription));
+            }
+        }
+
+        // The new period starts where the previous one ended (not at
+        // "now"), so a late job run does not shift the billing anchor.
+        // Known wrinkle: after a short month (Jan 31 -> Feb 28) the day of
+        // month stays at 28. Acceptable for now.
+        OffsetDateTime newStart = previousEnd != null ? previousEnd : now;
+        subscription.setCurrentPeriodStart(newStart);
+        subscription.setCurrentPeriodEnd(addBillingCycle(newStart, planPrice.getBillingCycle()));
+        return toSubscriptionResponseDTO(subscriptionRepository.save(subscription));
+    }
+
+    private OffsetDateTime addBillingCycle(OffsetDateTime from, String billingCycle) {
+        return switch (billingCycle) {
+            case "MONTHLY" -> from.plusMonths(1);
+            case "YEARLY" -> from.plusYears(1);
+            default -> throw new IllegalStateException("Unsupported billing cycle: " + billingCycle);
+        };
+    }
+
+    // ---- Activation (reacts to payment events) ----
+
+    /**
+     * Runs synchronously inside the transaction that marked the invoice
+     * paid: if this fails, the payment rolls back with it.
+     *
+     *  - PENDING  -> ACTIVE, first period starts now;
+     *  - PAST_DUE -> ACTIVE, and the period that was overdue is now paid,
+     *    so it advances one cycle (otherwise the renewal job would bill the
+     *    same period again on its next run);
+     *  - anything else is ignored: ACTIVE means a renewal invoice was paid
+     *    (its period already advanced); CANCELLED/EXPIRED/SUSPENDED must
+     *    never be reactivated by a payment.
+     */
+    @EventListener
+    @Transactional
+    public void onInvoicePaid(PaymentService.InvoicePaidEvent event) {
+        Subscription subscription = subscriptionRepository.findByPublicUuid(event.subscriptionPublicUuid())
+                .orElseThrow(() -> new SubscriptionNotFoundException(
+                        "Subscription not found: " + event.subscriptionPublicUuid()));
+
+        OffsetDateTime now = OffsetDateTime.now();
+
+        switch (subscription.getStatus()) {
+            case "PENDING" -> activate(subscription, now);
+            case "PAST_DUE" -> {
+                OffsetDateTime overdueEnd = subscription.getCurrentPeriodEnd();
+                activate(subscription, overdueEnd != null ? overdueEnd : now);
+            }
+            default -> { }
+        }
+    }
+
+    // Paid plans wait for the first invoice to be paid (onInvoicePaid
+    // activates them). Free plans have nothing to pay, so they start now
+    // and no invoice is issued (a 0 invoice could never be paid:
+    // ck_payments_amount requires amount > 0).
+    private void startSubscription(Subscription subscription) {
+        if (subscription.getPlanPrice().getAmount().signum() == 0) {
+            activate(subscription, OffsetDateTime.now());
+        } else {
+            paymentService.issueInitialInvoice(subscription);
+        }
+    }
+
+    private void activate(Subscription subscription, OffsetDateTime periodStart) {
+        subscription.setStatus("ACTIVE");
+        subscription.setCurrentPeriodStart(periodStart);
+        subscription.setCurrentPeriodEnd(
+                addBillingCycle(periodStart, subscription.getPlanPrice().getBillingCycle()));
+        subscriptionRepository.save(subscription);
     }
 
     // ---- Internal helpers ----
@@ -305,6 +455,14 @@ public class BillingService {
                 .orElseThrow(() -> new PlanNotFoundException("Plan not found: " + publicUuid));
     }
 
+    // ARCHIVED is terminal (there is no un-archive), so an archived plan is
+    // frozen: no edits, no new limits, no new prices. INACTIVE plans stay
+    // editable so an admin can prepare them before reactivating.
+    private void requirePlanNotArchived(Plan plan) {
+        if ("ARCHIVED".equals(plan.getStatus())) {
+            throw new PlanArchivedException("This plan is archived and can no longer be modified");
+        }
+    }
     private Organization findOrganizationOrThrow(UUID publicUuid) {
         return organizationRepository.findByPublicUuid(publicUuid)
                 .orElseThrow(() -> new OrganizationNotFoundException("Organization not found: " + publicUuid));
@@ -326,9 +484,15 @@ public class BillingService {
         // Only ACTIVE plans accept new subscriptions or switches. Existing
     // subscriptions on a deactivated plan are left untouched.
     private void requirePlanAvailable(PlanPrice planPrice) {
-        if (!"ACTIVE".equals(planPrice.getPlan().getStatus())) {
+        if (!isPlanAvailable(planPrice)) {
             throw new IllegalArgumentException("This plan is not available for new subscriptions");
         }
+    }
+
+    // Boolean form, also used by renewSubscription(), which must not throw
+    // inside a batch job when a plan was deactivated after subscribing.
+    private boolean isPlanAvailable(PlanPrice planPrice) {
+        return "ACTIVE".equals(planPrice.getPlan().getStatus());
     }
 
     // Mirrors OrganizationService/ProjectService/ServiceService/
