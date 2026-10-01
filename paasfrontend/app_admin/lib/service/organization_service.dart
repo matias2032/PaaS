@@ -16,15 +16,18 @@ class OrganizationService {
   // Spring Data resolves ?page=&size=&sort=property,direction into a
   // Pageable. Without an explicit sort the order is not deterministic,
   // which would shuffle items between pages, so it is always sent.
+  // `search` matches organization name OR slug (case-insensitive, contains).
   Future<OrganizationPage> listOrganizations({
     int page = 0,
     int size = defaultPageSize,
+    String? search,
   }) async {
     final url = Uri.parse(ApiConfig.adminOrganizationsUrl).replace(
       queryParameters: {
         'page': '$page',
         'size': '$size',
         'sort': 'createdAt,desc',
+        if (search != null && search.isNotEmpty) 'search': search,
       },
     ).toString();
 

@@ -19,8 +19,10 @@ public class AdminOrganizationController {
 
     @GetMapping
     @PreAuthorize("hasRole('SUPPORT')")
-    public Page<OrganizationResponseDTO> listAll(Pageable pageable) {
-        return organizationService.listAllOrganizations(pageable);
+    public Page<OrganizationResponseDTO> listAll(
+            @RequestParam(required = false) String search,
+            Pageable pageable) {
+        return organizationService.listAllOrganizations(search, pageable);
     }
 
     @GetMapping("/{publicUuid}")

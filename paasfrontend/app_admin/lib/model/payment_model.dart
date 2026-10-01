@@ -21,6 +21,15 @@ class InvoiceStatuses {
 
   // Mirrors PaymentService.PAYABLE_INVOICE_STATUSES.
   static bool isPayable(String status) => status == pending || status == overdue;
+
+  // Filter order AND list priority: what still needs attention comes first.
+  static const List<String> all = [pending, overdue, draft, paid, cancelled, void_];
+
+  // Lower = shown first. Unknown statuses go last.
+  static int priority(String status) {
+    final index = all.indexOf(status);
+    return index == -1 ? all.length : index;
+  }
 }
 
 class PaymentStatuses {

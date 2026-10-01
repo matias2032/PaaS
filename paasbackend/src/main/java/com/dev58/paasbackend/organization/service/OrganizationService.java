@@ -97,8 +97,18 @@ public class OrganizationService {
     // @PreAuthorize("hasRole('SUPPORT')") no controller. Ao contrário de
     // listOrganizationsForCurrentUser(), devolve TODAS as organizações.
     public Page<OrganizationResponseDTO> listAllOrganizations(Pageable pageable) {
-        return organizationRepository.findAll(pageable)
-                .map(this::toResponseDTO);
+        return listAllOrganizations(null, pageable);
+    }
+
+    // Same as above, optionally narrowed by a name/slug search term.
+    // Blank or null term = no filter (all organizations).
+    public Page<OrganizationResponseDTO> listAllOrganizations(String search, Pageable pageable) {
+        String term = search == null ? "" : search.trim();
+        Page<Organization> page = term.isEmpty()
+                ? organizationRepository.findAll(pageable)
+                : organizationRepository
+                        .findByNameContainingIgnoreCaseOrSlugContainingIgnoreCase(term, term, pageable);
+        return page.map(this::toResponseDTO);
     }
 
     // Variante de getOrganization() sem requireMembership — permite ver

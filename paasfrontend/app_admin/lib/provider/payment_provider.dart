@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+import '../model/organization_model.dart';
 import '../model/payment_model.dart';
+import '../repository/organization_repository.dart';
 import '../repository/payment_repository.dart';
 import '../service/api_exception.dart';
 
@@ -10,9 +12,14 @@ import '../service/api_exception.dart';
 // catalog, loaded once and cached for the lifetime of the session.
 class PaymentProvider extends ChangeNotifier {
   final PaymentRepository _repository;
+  final OrganizationRepository _organizationRepository;
 
-  PaymentProvider({PaymentRepository? repository})
-      : _repository = repository ?? PaymentRepository();
+  PaymentProvider({
+    PaymentRepository? repository,
+    OrganizationRepository? organizationRepository,
+  })  : _repository = repository ?? PaymentRepository(),
+        _organizationRepository =
+            organizationRepository ?? OrganizationRepository();
 
   // ── State: invoices (scoped to the org currently being viewed) ────
 
@@ -21,6 +28,18 @@ class PaymentProvider extends ChangeNotifier {
   bool _isLoadingInvoices = false;
   bool _hasLoadedInvoices = false;
   String? _invoicesErrorMessage;
+
+  // Organization of the loaded invoices, when known (picked from the
+  // search). Null when the invoices were loaded by UUID only.
+  OrganizationModel? _loadedOrganization;
+
+  // ── State: organization search (name or slug) ─────────────────────
+
+  List<OrganizationModel> _organizationResults = [];
+  String _organizationSearchTerm = '';
+  bool _isSearchingOrganizations = false;
+  bool _hasSearchedOrganizations = false;
+  String? _organizationSearchError;
 
   // publicUuids (invoice or payment) with a mutation in flight.
   final Set<String> _updating = {};
@@ -43,6 +62,12 @@ class PaymentProvider extends ChangeNotifier {
   bool get isLoadingMethods => _isLoadingMethods;
   String? get methodsErrorMessage => _methodsErrorMessage;
 
+  OrganizationModel? get loadedOrganization => _loadedOrganization;
+  List<OrganizationModel> get organizationResults => _organizationResults;
+  bool get isSearchingOrganizations => _isSearchingOrganizations;
+  bool get hasSearchedOrganizations => _hasSearchedOrganizations;
+  String? get organizationSearchError => _organizationSearchError;
+
   bool isUpdating(String publicUuid) => _updating.contains(publicUuid);
 
   InvoiceModel? invoiceByUuid(String publicUuid) {
@@ -64,20 +89,86 @@ class PaymentProvider extends ChangeNotifier {
 
   // ── Invoices ─────────────────────────────────────────────────────
 
-  Future<void> loadInvoices(String orgPublicUuid) async {
+  Future<void> loadInvoices(
+    String orgPublicUuid, {
+    OrganizationModel? organization,
+  }) async {
+    final switching = orgPublicUuid != _loadedOrgPublicUuid;
+
+    if (organization != null) {
+      _loadedOrganization = organization;
+    } else if (switching) {
+      _loadedOrganization = null;
+    }
+    // Never show the previous organization's invoices under the new one.
+    if (switching) _invoices = [];
+
+    // Set before the request so that "Retry" targets the organization that
+    // was attempted, even when the request fails.
+    _loadedOrgPublicUuid = orgPublicUuid;
     _isLoadingInvoices = true;
     _invoicesErrorMessage = null;
     notifyListeners();
 
     try {
-      _invoices = await _repository.listInvoicesByOrganizationAsAdmin(orgPublicUuid);
-      _loadedOrgPublicUuid = orgPublicUuid;
+      final result =
+          await _repository.listInvoicesByOrganizationAsAdmin(orgPublicUuid);
+      if (_loadedOrgPublicUuid != orgPublicUuid) return; // a newer load took over
+      _invoices = result;
     } catch (e) {
+      if (_loadedOrgPublicUuid != orgPublicUuid) return;
       _invoicesErrorMessage = _messageFrom(e);
     }
 
     _isLoadingInvoices = false;
     _hasLoadedInvoices = true;
+    notifyListeners();
+  }
+
+  // ── Organization search ──────────────────────────────────────────
+
+  Future<void> searchOrganizations(String term) async {
+    final clean = term.trim();
+    _organizationSearchTerm = clean;
+
+    if (clean.isEmpty) {
+      clearOrganizationSearch();
+      return;
+    }
+
+    _isSearchingOrganizations = true;
+    _organizationSearchError = null;
+    notifyListeners();
+
+    try {
+      final page = await _organizationRepository.listOrganizations(
+        search: clean,
+        size: 10,
+      );
+      if (_organizationSearchTerm != clean) return; // a newer search took over
+
+      final items = [...page.items];
+      // Slug is unique: an exact slug match goes first.
+      final exact = items.indexWhere((o) => o.slug.toLowerCase() == clean.toLowerCase());
+      if (exact > 0) items.insert(0, items.removeAt(exact));
+      _organizationResults = items;
+    } catch (e) {
+      if (_organizationSearchTerm != clean) return;
+      _organizationResults = [];
+      _organizationSearchError = _messageFrom(e);
+    }
+
+    _isSearchingOrganizations = false;
+    _hasSearchedOrganizations = true;
+    notifyListeners();
+  }
+
+  void clearOrganizationSearch() {
+    _organizationSearchTerm = '';
+    _organizationResults = [];
+    _isSearchingOrganizations = false;
+    _hasSearchedOrganizations = false;
+    _organizationSearchError = null;
     notifyListeners();
   }
 
@@ -175,6 +266,12 @@ class PaymentProvider extends ChangeNotifier {
     _isLoadingMethods = false;
     _methodsErrorMessage = null;
     _updating.clear();
+    _loadedOrganization = null;
+    _organizationResults = [];
+    _organizationSearchTerm = '';
+    _isSearchingOrganizations = false;
+    _hasSearchedOrganizations = false;
+    _organizationSearchError = null;
     notifyListeners();
   }
 

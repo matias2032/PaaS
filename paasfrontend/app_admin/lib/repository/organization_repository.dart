@@ -17,9 +17,13 @@ class OrganizationRepository {
   OrganizationRepository({OrganizationService? service})
       : _service = service ?? OrganizationService();
 
+  // Upper bound for the search term sent to the backend.
+  static const int maxSearchLength = 100;
+
   Future<OrganizationPage> listOrganizations({
     int page = 0,
     int size = OrganizationService.defaultPageSize,
+    String? search,
   }) {
     if (page < 0) {
       throw _invalid('Page must be 0 or greater.');
@@ -27,9 +31,18 @@ class OrganizationRepository {
     if (size < 1 || size > maxPageSize) {
       throw _invalid('Page size must be between 1 and $maxPageSize.');
     }
-    return _service.listOrganizations(page: page, size: size);
-  }
 
+    final term = search?.trim();
+    if (term != null && term.length > maxSearchLength) {
+      throw _invalid('Search term must be at most $maxSearchLength characters.');
+    }
+
+    return _service.listOrganizations(
+      page: page,
+      size: size,
+      search: (term == null || term.isEmpty) ? null : term,
+    );
+  }
   Future<OrganizationModel> getOrganization(String publicUuid) =>
       _service.getOrganization(publicUuid);
 
