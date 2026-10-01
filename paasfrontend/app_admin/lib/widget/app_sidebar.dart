@@ -6,10 +6,12 @@ import '/provider/audit_log_provider.dart';
 import '/provider/billing_provider.dart';
 import '/provider/infrastructure_provider.dart';
 import '/provider/organization_provider.dart';
+import '/provider/payment_provider.dart';
 import '/screens/audit_logs_screen.dart';
 import '/screens/coolify_instances_screen.dart';
 import '/screens/login_screen.dart';
 import '/screens/organizations_screen.dart';
+import '/screens/payments_screen.dart';
 import '/screens/plans_screen.dart';
 import '/screens/servers_screen.dart';
 import '/screens/staff_screen.dart';
@@ -61,6 +63,18 @@ class AppSidebar extends StatelessWidget {
             onTap: () {
               Navigator.of(context).pop();
               onNavigate(const OrganizationsScreen());
+            },
+          ),
+        // SUPPORT or above (PaymentController reads: hasRole('SUPPORT')).
+        // Mark-paid / refund inside the invoice detail are gated separately
+        // by isAtLeastPlatformAdmin.
+        if (authProvider.isAtLeastSupport)
+          ListTile(
+            leading: const Icon(Icons.payments_outlined),
+            title: const Text('Payments'),
+            onTap: () {
+              Navigator.of(context).pop();
+              onNavigate(const PaymentsScreen());
             },
           ),
         // SUPPORT or above (AuditLogController: hasRole('SUPPORT')).
@@ -115,6 +129,7 @@ class AppSidebar extends StatelessWidget {
             context.read<OrganizationProvider>().reset();
             context.read<ApiKeyProvider>().reset();
             context.read<AuditLogProvider>().reset();
+            context.read<PaymentProvider>().reset();
             await authProvider.logout();
             if (context.mounted) {
               Navigator.of(context).pushAndRemoveUntil(

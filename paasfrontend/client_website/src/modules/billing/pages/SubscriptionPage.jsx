@@ -136,6 +136,12 @@ function SubscriptionPage() {
             {subscription ? 'Change plan' : 'Browse plans'}
           </Link>
         )}
+        <Link
+          to={`/organizations/${orgPublicUuid}/invoices`}
+          className="subscription-page__invoices-link"
+        >
+          View invoices
+        </Link>
       </section>
 
       <section className="subscription-page__history">

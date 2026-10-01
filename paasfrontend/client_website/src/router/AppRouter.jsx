@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import authRoutes from '../modules/auth/AuthRoutes';
 import organizationRoutes from '../modules/organization/OrganizationRoutes';
 import billingRoutes from '../modules/billing/BillingRoutes';
+import paymentRoutes from '../modules/payment/PaymentRoutes';
 import projectRoutes from '../modules/project/ProjectRoutes';
 import serviceRoutes from '../modules/service/ServiceRoutes';
 import apiKeyRoutes from '../modules/api_key/ApiKeyRoutes';
@@ -13,6 +14,7 @@ const allRoutes = [
   ...authRoutes,
   ...organizationRoutes,
   ...billingRoutes,
+  ...paymentRoutes,
   ...projectRoutes,
   ...serviceRoutes,
   ...apiKeyRoutes,

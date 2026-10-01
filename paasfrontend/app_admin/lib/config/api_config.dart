@@ -33,6 +33,9 @@ class ApiConfig {
   // ── Caminhos relativos — ADMIN (supervisão) ────────────────────────
 
   static const String _adminOrganizations = '/api/admin/organizations';
+  static const String _adminInvoices = '/api/admin/invoices';
+  static const String _adminPayments = '/api/admin/payments';
+  static const String _paymentMethods = '/api/payment-methods';
 
   // Suspend / lift-suspension live on the regular organization controller
   // (hasRole('PLATFORM_ADMIN')), not under /api/admin.
@@ -79,6 +82,20 @@ class ApiConfig {
     '$baseUrl/api/admin/api-keys/$keyPublicUuid/revoke';    
 
   static String get adminAuditLogsUrl => '$baseUrl/api/admin/audit-logs';
+
+  // ── Full URLs — PAYMENT (admin view) ────────────────────────────────
+
+  static String adminOrganizationInvoicesUrl(String orgPublicUuid) =>
+      '$baseUrl$_adminOrganizations/$orgPublicUuid/invoices';
+
+  static String adminInvoiceMarkPaidUrl(String invoicePublicUuid) =>
+      '$baseUrl$_adminInvoices/$invoicePublicUuid/mark-paid';
+
+  static String adminPaymentRefundUrl(String paymentPublicUuid) =>
+      '$baseUrl$_adminPayments/$paymentPublicUuid/refund';
+
+  // Catalog, same level as GET /api/plans — any authenticated user.
+  static String get paymentMethodsUrl => '$baseUrl$_paymentMethods';
 
       
 
@@ -132,6 +149,8 @@ class ApiConfig {
 
   static String planPricesUrl(String publicUuid) =>
       '$plansUrl/$publicUuid/prices';
+
+
 
   // ── Configurações gerais ──────────────────────────────────────────
 

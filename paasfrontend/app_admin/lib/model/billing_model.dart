@@ -18,19 +18,18 @@ class BillingStatuses {
   static const List<String> plan = [active, inactive, archived];
 
   // Mirrors ck_plan_prices_cycle. Order = display order.
-  static const List<String> billingCycles = [
-    'MONTHLY',
-    'QUARTERLY',
-    'SEMIANNUAL',
-    'YEARLY',
-  ];
+  // Mirrors ck_plan_prices_cycle / PlanPriceRequestDTO's @Pattern —
+  // QUARTERLY/SEMIANNUAL are no longer accepted by the backend.
+  static const List<String> billingCycles = ['MONTHLY', 'YEARLY'];
 
   // The backend does not guard these transitions (reactivate even works
   // on an ARCHIVED plan), so the client enforces them.
   static bool canDeactivate(String status) => status == active;
   static bool canReactivate(String status) => status == inactive;
-  static bool canArchive(String status) =>
-      status == active || status == inactive;
+  static bool canArchive(String status) =>status == active || status == inactive;
+    // ARCHIVED plans are terminal: the backend rejects updatePlan/
+  // setResourceLimits/addPrice on them with PlanArchivedException (409).
+  static bool canManageDetails(String status) => status != archived;
 
   static String cycleLabel(String cycle) {
     switch (cycle) {
@@ -77,9 +76,10 @@ class PlanResourceLimitModel {
   final double cpuLimit;
   final int memoryLimitMb;
   final int storageLimitMb;
-  final int maxProjects;
-  final int maxServices;
-  final int maxDomains;
+  // NULL = no limit (mirrors the backend's V4 migration / entity note).
+  final int? maxProjects;
+  final int? maxServices;
+  final int? maxDomains;
   final int? maxEnvironmentVariables;
   final int? bandwidthLimitMb;
 
@@ -100,9 +100,9 @@ class PlanResourceLimitModel {
       cpuLimit: (json['cpuLimit'] as num).toDouble(),
       memoryLimitMb: (json['memoryLimitMb'] as num).toInt(),
       storageLimitMb: (json['storageLimitMb'] as num).toInt(),
-      maxProjects: (json['maxProjects'] as num).toInt(),
-      maxServices: (json['maxServices'] as num).toInt(),
-      maxDomains: (json['maxDomains'] as num).toInt(),
+      maxProjects: (json['maxProjects'] as num?)?.toInt(),
+      maxServices: (json['maxServices'] as num?)?.toInt(),
+      maxDomains: (json['maxDomains'] as num?)?.toInt(),
       maxEnvironmentVariables:
           (json['maxEnvironmentVariables'] as num?)?.toInt(),
       bandwidthLimitMb: (json['bandwidthLimitMb'] as num?)?.toInt(),
@@ -245,9 +245,11 @@ class PlanResourceLimitRequest {
   final double cpuLimit;
   final int memoryLimitMb;
   final int storageLimitMb;
-  final int maxProjects;
-  final int maxServices;
-  final int maxDomains;
+  // Optional now: omitted/null means "no limit". PUT still replaces the
+  // whole row, so a blank field here clears it server-side.
+  final int? maxProjects;
+  final int? maxServices;
+  final int? maxDomains;
   final int? maxEnvironmentVariables;
   final int? bandwidthLimitMb;
 
@@ -266,9 +268,9 @@ class PlanResourceLimitRequest {
         'cpuLimit': cpuLimit,
         'memoryLimitMb': memoryLimitMb,
         'storageLimitMb': storageLimitMb,
-        'maxProjects': maxProjects,
-        'maxServices': maxServices,
-        'maxDomains': maxDomains,
+        if (maxProjects != null) 'maxProjects': maxProjects,
+        if (maxServices != null) 'maxServices': maxServices,
+        if (maxDomains != null) 'maxDomains': maxDomains,
         if (maxEnvironmentVariables != null)
           'maxEnvironmentVariables': maxEnvironmentVariables,
         if (bandwidthLimitMb != null) 'bandwidthLimitMb': bandwidthLimitMb,

@@ -76,6 +76,10 @@ class PlanDetailScreen extends StatelessWidget {
     final canDeactivate = BillingStatuses.canDeactivate(plan.status);
     final canReactivate = BillingStatuses.canReactivate(plan.status);
     final canArchive = BillingStatuses.canArchive(plan.status);
+    // ARCHIVED is terminal server-side (PlanArchivedException on
+    // updatePlan/setResourceLimits/addPrice) — hide the actions instead
+    // of letting them fail with a 409 on click.
+    final canEdit = BillingStatuses.canManageDetails(plan.status);
 
     return Scaffold(
       appBar: AppBar(
@@ -109,13 +113,15 @@ class PlanDetailScreen extends StatelessWidget {
           ],
           _Section(
             title: 'Details',
-            action: TextButton.icon(
-              onPressed: busy
-                  ? null
-                  : () => _openDialog(context, EditPlanDialog(plan: plan)),
-              icon: const Icon(Icons.edit_outlined),
-              label: const Text('Edit'),
-            ),
+            action: canEdit
+                ? TextButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => _openDialog(context, EditPlanDialog(plan: plan)),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Edit'),
+                  )
+                : const SizedBox.shrink(),
             children: [
   _InfoRow('Status', child: StatusChip(status: plan.status)),
               if (canDeactivate || canReactivate)
@@ -146,34 +152,38 @@ class PlanDetailScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _Section(
             title: 'Resource limits',
-            action: TextButton.icon(
-              onPressed: busy
-                  ? null
-                  : () => _openDialog(
-                        context,
-                        ResourceLimitsDialog(
-                          planPublicUuid: plan.publicUuid,
-                          existing: plan.resourceLimits,
-                        ),
-                      ),
-              icon: const Icon(Icons.tune),
-              label: Text(plan.resourceLimits == null ? 'Set' : 'Edit'),
-            ),
+            action: canEdit
+                ? TextButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => _openDialog(
+                              context,
+                              ResourceLimitsDialog(
+                                planPublicUuid: plan.publicUuid,
+                                existing: plan.resourceLimits,
+                              ),
+                            ),
+                    icon: const Icon(Icons.tune),
+                    label: Text(plan.resourceLimits == null ? 'Set' : 'Edit'),
+                  )
+                : const SizedBox.shrink(),
             children: _limitRows(plan.resourceLimits),
           ),
           const SizedBox(height: 12),
           _Section(
             title: 'Current prices',
-            action: TextButton.icon(
-              onPressed: busy
-                  ? null
-                  : () => _openDialog(
-                        context,
-                        AddPriceDialog(planPublicUuid: plan.publicUuid),
-                      ),
-              icon: const Icon(Icons.add),
-              label: const Text('Set price'),
-            ),
+            action: canEdit
+                ? TextButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => _openDialog(
+                              context,
+                              AddPriceDialog(planPublicUuid: plan.publicUuid),
+                            ),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Set price'),
+                  )
+                : const SizedBox.shrink(),
             children: plan.prices.isEmpty
                 ? const [_InfoRow('Prices', value: 'No current prices')]
                 : plan.prices
@@ -194,9 +204,9 @@ class PlanDetailScreen extends StatelessWidget {
       _InfoRow('CPU', value: '${l.cpuLimit} cores'),
       _InfoRow('Memory', value: '${l.memoryLimitMb} MB'),
       _InfoRow('Storage', value: '${l.storageLimitMb} MB'),
-      _InfoRow('Max projects', value: '${l.maxProjects}'),
-      _InfoRow('Max services', value: '${l.maxServices}'),
-      _InfoRow('Max domains', value: '${l.maxDomains}'),
+      _InfoRow('Max projects', value: l.maxProjects?.toString() ?? 'Unlimited'),
+      _InfoRow('Max services', value: l.maxServices?.toString() ?? 'Unlimited'),
+      _InfoRow('Max domains', value: l.maxDomains?.toString() ?? 'Unlimited'),
       _InfoRow('Max env. variables',
           value: l.maxEnvironmentVariables?.toString() ?? 'Not set'),
       _InfoRow('Bandwidth',

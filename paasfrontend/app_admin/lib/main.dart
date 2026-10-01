@@ -6,6 +6,7 @@ import 'provider/auth_provider.dart';
 import 'provider/billing_provider.dart';
 import 'provider/infrastructure_provider.dart';
 import 'provider/organization_provider.dart';
+import 'provider/payment_provider.dart';
 import 'screens/login_screen.dart';
 
 void main() {
@@ -25,9 +26,10 @@ class AppAdmin extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => OrganizationProvider()),
         ChangeNotifierProvider(create: (_) => ApiKeyProvider()),
         ChangeNotifierProvider(create: (_) => AuditLogProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
       ],
       child: MaterialApp(
-title: 'Admin Panel',
+        title: 'Admin Panel',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,

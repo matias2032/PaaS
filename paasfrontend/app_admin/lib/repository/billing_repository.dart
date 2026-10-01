@@ -73,9 +73,9 @@ class BillingRepository {
     required double cpuLimit,
     required int memoryLimitMb,
     required int storageLimitMb,
-    required int maxProjects,
-    required int maxServices,
-    required int maxDomains,
+    int? maxProjects,
+    int? maxServices,
+    int? maxDomains,
     int? maxEnvironmentVariables,
     int? bandwidthLimitMb,
   }) {

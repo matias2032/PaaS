@@ -85,6 +85,7 @@ class BillingProvider extends ChangeNotifier {
     String? description,
   }) {
     return _runOnPlan(publicUuid, (plan) async {
+      _requireEditable(plan);
       final updated = await _repository.updatePlan(
         plan,
         name: name,
@@ -117,13 +118,14 @@ class BillingProvider extends ChangeNotifier {
     required double cpuLimit,
     required int memoryLimitMb,
     required int storageLimitMb,
-    required int maxProjects,
-    required int maxServices,
-    required int maxDomains,
+    int? maxProjects,
+    int? maxServices,
+    int? maxDomains,
     int? maxEnvironmentVariables,
     int? bandwidthLimitMb,
   }) {
     return _runOnPlan(planPublicUuid, (plan) async {
+      _requireEditable(plan);
       final limits = await _repository.setResourceLimits(
         planPublicUuid: planPublicUuid,
         cpuLimit: cpuLimit,
@@ -146,6 +148,7 @@ class BillingProvider extends ChangeNotifier {
     required String currency,
   }) {
     return _runOnPlan(planPublicUuid, (plan) async {
+      _requireEditable(plan);
       final price = await _repository.addPrice(
         planPublicUuid: planPublicUuid,
         billingCycle: billingCycle,
@@ -213,6 +216,18 @@ class BillingProvider extends ChangeNotifier {
     _plans = _plans
         .map((p) => p.publicUuid == updated.publicUuid ? updated : p)
         .toList();
+  }
+
+    // ARCHIVED plans are terminal server-side (PlanArchivedException,
+  // 409). Checked here too so the UI fails fast with a clear message
+  // instead of round-tripping to the server first.
+  void _requireEditable(PlanModel plan) {
+    if (plan.status == BillingStatuses.archived) {
+      throw ApiException(
+        statusCode: 409,
+        message: 'This plan is archived and can no longer be edited.',
+      );
+    }
   }
 
   // ApiException carries a user-facing message; anything else (e.g. a

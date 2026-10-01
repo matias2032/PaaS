@@ -39,9 +39,21 @@ function PlanCard({
           <li>{plan.resourceLimits.cpuLimit} CPU</li>
           <li>{plan.resourceLimits.memoryLimitMb} MB memory</li>
           <li>{plan.resourceLimits.storageLimitMb} MB storage</li>
-          <li>{plan.resourceLimits.maxProjects} projects</li>
-          <li>{plan.resourceLimits.maxServices} services</li>
-          <li>{plan.resourceLimits.maxDomains} domains</li>
+          <li>
+            {plan.resourceLimits.maxProjects != null
+              ? `${plan.resourceLimits.maxProjects} projects`
+              : 'Unlimited projects'}
+          </li>
+          <li>
+            {plan.resourceLimits.maxServices != null
+              ? `${plan.resourceLimits.maxServices} services`
+              : 'Unlimited services'}
+          </li>
+          <li>
+            {plan.resourceLimits.maxDomains != null
+              ? `${plan.resourceLimits.maxDomains} domains`
+              : 'Unlimited domains'}
+          </li>
         </ul>
       )}
 

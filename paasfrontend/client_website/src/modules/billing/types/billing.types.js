@@ -45,9 +45,9 @@
  * @property {number} cpuLimit - decimal, must be > 0
  * @property {number} memoryLimitMb - integer, >= 0
  * @property {number} storageLimitMb - integer, >= 0
- * @property {number} maxProjects - integer, >= 0
- * @property {number} maxServices - integer, >= 0
- * @property {number} maxDomains - integer, >= 0
+ * @property {number} [maxProjects] - integer, >= 0, optional (omitted/null = no limit)
+ * @property {number} [maxServices] - integer, >= 0, optional (omitted/null = no limit)
+ * @property {number} [maxDomains] - integer, >= 0, optional (omitted/null = no limit)
  * @property {number} [maxEnvironmentVariables] - integer, optional
  * @property {number} [bandwidthLimitMb] - integer, optional
  */
@@ -59,9 +59,9 @@
  * @property {number} cpuLimit
  * @property {number} memoryLimitMb
  * @property {number} storageLimitMb
- * @property {number} maxProjects
- * @property {number} maxServices
- * @property {number} maxDomains
+ * @property {number|null} maxProjects - null means "no limit"
+ * @property {number|null} maxServices - null means "no limit"
+ * @property {number|null} maxDomains - null means "no limit"
  * @property {number} maxEnvironmentVariables
  * @property {number} bandwidthLimitMb
  */
@@ -72,8 +72,9 @@
  * effectiveUntil = now) instead of updating it — a PlanPrice in force
  * is never mutated, only superseded.
  * @typedef {Object} PlanPriceRequest
- * @property {string} billingCycle - e.g. "MONTHLY" | "YEARLY"
- *   (backend does not constrain the exact set — treat as a plain string)
+ * @property {string} billingCycle - "MONTHLY" | "YEARLY" only. Backend
+ *   now validates this (@Pattern on PlanPriceRequestDTO); ck_plan_prices_cycle
+ *   no longer allows QUARTERLY/SEMIANNUAL either.
  * @property {number} amount - decimal, >= 0
  * @property {string} [currency]
  */
