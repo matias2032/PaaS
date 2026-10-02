@@ -49,23 +49,25 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   @override
   void initState() {
     super.initState();
-    final provider = context.read<PaymentProvider>();
-    final loaded = provider.loadedOrganization;
-    final initial = widget.initialOrgPublicUuid ?? provider.loadedOrgPublicUuid;
-    if (loaded != null && loaded.publicUuid == initial) {
-      _searchController.text = loaded.name;
-    } else if (initial != null) {
-      _searchController.text = initial;
-    }
+
+    // Only an explicit organization (opened from the organization detail
+    // screen) pre-fills the field. Anything the provider remembers from a
+    // previous visit is deliberately ignored.
+    final explicit = widget.initialOrgPublicUuid;
+    if (explicit != null) _searchController.text = explicit;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final p = context.read<PaymentProvider>();
       p.clearErrors();
       p.clearOrganizationSearch();
-      final explicit = widget.initialOrgPublicUuid;
-      if (explicit != null && explicit != p.loadedOrgPublicUuid) {
-        p.loadInvoices(explicit);
+
+      // Provider state is app-wide, so every access starts from the
+      // default view instead of whatever the last visit left behind.
+      if (explicit == null) {
+        p.clearInvoices();
+      } else {
+        p.loadInvoices(explicit); // always fresh, never a stale copy
       }
     });
   }
@@ -85,8 +87,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final provider = context.read<PaymentProvider>();
 
     if (term.isEmpty) {
-      provider.clearOrganizationSearch();
-      setState(() => _showResults = false);
+      _clearSearch();
       return;
     }
 
@@ -130,13 +131,19 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     context.read<PaymentProvider>().loadInvoices(uuid);
   }
 
+  // Full reset: search text, results panel, loaded invoices and status
+  // filter. Used by the clear button and when the field is emptied.
   void _clearSearch() {
     _debounce?.cancel();
     _searchController.clear();
-    context.read<PaymentProvider>().clearOrganizationSearch();
-    setState(() => _showResults = false);
+    context.read<PaymentProvider>()
+      ..clearOrganizationSearch()
+      ..clearInvoices();
+    setState(() {
+      _showResults = false;
+      _statusFilter = null;
+    });
   }
-
   void _reload() {
     final uuid = context.read<PaymentProvider>().loadedOrgPublicUuid;
     if (uuid != null) context.read<PaymentProvider>().loadInvoices(uuid);

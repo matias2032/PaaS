@@ -249,6 +249,20 @@ class PaymentProvider extends ChangeNotifier {
 
   // ── Housekeeping ──────────────────────────────────────────────────
 
+  /// Back to the default view: no organization, no invoices loaded.
+  /// A load still in flight is ignored when it returns, because
+  /// loadInvoices only applies its result if it still matches
+  /// _loadedOrgPublicUuid.
+  void clearInvoices() {
+    _invoices = [];
+    _loadedOrgPublicUuid = null;
+    _loadedOrganization = null;
+    _isLoadingInvoices = false;
+    _hasLoadedInvoices = false;
+    _invoicesErrorMessage = null;
+    notifyListeners();
+  }
+
   void clearErrors() {
     _invoicesErrorMessage = null;
     _methodsErrorMessage = null;
