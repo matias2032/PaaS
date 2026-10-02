@@ -70,8 +70,35 @@ class AuthService {
       body: {'currentPassword': currentPassword, 'newPassword': newPassword},
     );
     return AuthResponse.fromJson(json as Map<String, dynamic>);
+
+
   }
 
+  // PATCH /api/auth/me. The backend overwrites firstName/lastName/phone with
+  // whatever is sent (firstName is mandatory), so callers must always send
+  // the current values of the fields they are not changing.
+  Future<AuthResponse> updateProfile({
+    required String firstName,
+    String? lastName,
+    String? phone,
+  }) async {
+    final json = await ApiClient.patch(
+      ApiConfig.authMeUrl(),
+      body: {
+        'firstName': firstName,
+        'lastName': lastName,
+        'phone': phone, // null clears the number
+      },
+    );
+    return AuthResponse.fromJson(json as Map<String, dynamic>);
+  }
+
+  Future<AuthResponse> resetStaffPassword(String publicUuid) async {
+    final json = await ApiClient.post(
+      ApiConfig.authStaffResetPasswordUrl(publicUuid),
+    );
+    return AuthResponse.fromJson(json as Map<String, dynamic>);
+  }
   Future<AuthResponse> updateUserActiveStatus(String publicUuid, bool active) async {
     final json = await ApiClient.patch(
       ApiConfig.authStaffActiveUrl(publicUuid),

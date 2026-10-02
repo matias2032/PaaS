@@ -39,6 +39,10 @@ class AuthRepository {
 
  static const String defaultStaffPassword = '12345678';
 
+  // Digits, spaces, +, - and parentheses; 7 to 30 characters (the backend
+  // column is 30 long). Also used by the edit-profile form for live feedback.
+  static final RegExp phonePattern = RegExp(r'^\+?[0-9 ()\-]{7,30}$');
+
   Future<AuthResponse> createStaffUser({
     required String email,
     required String firstName,
@@ -73,6 +77,55 @@ class AuthRepository {
 
   Future<AuthResponse> updateUserActiveStatus(String publicUuid, bool active) async {
     return _authService.updateUserActiveStatus(publicUuid, active);
+  }
+
+  static const int maxNameLength = 100;
+
+  // PATCH /me overwrites firstName, lastName and phone with whatever it
+  // receives, so the screen always sends the three of them.
+  Future<AuthResponse> updateProfile(
+    AuthResponse current, {
+    required String firstName,
+    String? lastName,
+    String? phone,
+  }) async {
+    final first = firstName.trim();
+    final last = lastName?.trim() ?? '';
+    final newPhone = phone?.trim() ?? '';
+
+    if (first.isEmpty) {
+      throw ApiException(statusCode: 400, message: 'First name is required.');
+    }
+    if (first.length > maxNameLength || last.length > maxNameLength) {
+      throw ApiException(
+        statusCode: 400,
+        message: 'Names must be at most $maxNameLength characters.',
+      );
+    }
+
+    // The phone is only validated when it changed, so a legacy number does
+    // not block editing the name. Clearing it is not supported.
+    if (newPhone != (current.phone ?? '')) {
+      if (newPhone.isEmpty) {
+        throw ApiException(statusCode: 400, message: 'Phone number cannot be empty.');
+      }
+      if (!phonePattern.hasMatch(newPhone)) {
+        throw ApiException(
+          statusCode: 400,
+          message: 'Enter a valid phone number (digits, spaces, +, - and parentheses; 7 to 30 characters).',
+        );
+      }
+    }
+
+    return _authService.updateProfile(
+      firstName: first,
+      lastName: last.isEmpty ? null : last,
+      phone: newPhone.isEmpty ? null : newPhone,
+    );
+  }
+
+  Future<AuthResponse> resetStaffPassword(String publicUuid) async {
+    return _authService.resetStaffPassword(publicUuid);
   }
 
   Future<AuthResponse> updatePlatformRole(String publicUuid, String platformRole) async {

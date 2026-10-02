@@ -24,6 +24,8 @@ public class AuthResponseDTO {
 
     private String email;
 
+    private String phone;
+
     private String status;
 
     private OffsetDateTime emailVerifiedAt;

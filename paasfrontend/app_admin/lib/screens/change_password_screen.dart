@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/auth_provider.dart';
-import 'change_password_screen.dart';
+import '../widget/password_form_field.dart';
 import 'home_screen.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -18,6 +18,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _currentController = TextEditingController();
   final _newController = TextEditingController();
   final _confirmController = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Drop any stale message (e.g. from a previous login attempt).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AuthProvider>().clearError();
+    });
+  }
 
   @override
   void dispose() {
@@ -31,19 +41,30 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = context.read<AuthProvider>();
+    setState(() => _submitting = true);
     final success = await authProvider.changePassword(
       currentPassword: _currentController.text,
       newPassword: _newController.text,
     );
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    if (!success) return;
 
-    if (success && mounted) {
-      final authProvider = context.read<AuthProvider>();
+    if (widget.forced) {
+      // Temporary password replaced: continue into the app.
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => authProvider.mustChangePassword
               ? const ChangePasswordScreen(forced: true)
               : const HomeScreen(),
         ),
+      );
+    } else {
+      // Opened from the sidebar: just go back.
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pop();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Password changed.')),
       );
     }
   }
@@ -84,36 +105,30 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           ),
                           const SizedBox(height: 24),
                         ],
-                        TextFormField(
+                        PasswordFormField(
                           controller: _currentController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Current password',
-                            border: OutlineInputBorder(),
-                          ),
+                          label: 'Current password',
                           validator: (v) =>
                               (v == null || v.isEmpty) ? 'Required' : null,
                         ),
                         const SizedBox(height: 16),
-                        TextFormField(
+                        PasswordFormField(
                           controller: _newController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'New password',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => (v == null || v.length < 8)
-                              ? 'Minimum 8 characters'
-                              : null,
+                          label: 'New password',
+                          validator: (v) {
+                            if (v == null || v.length < 8) {
+                              return 'Minimum 8 characters';
+                            }
+                            if (v == _currentController.text) {
+                              return 'Must be different from the current password';
+                            }
+                            return null;
+                          },
                         ),
                         const SizedBox(height: 16),
-                        TextFormField(
+                        PasswordFormField(
                           controller: _confirmController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Confirm new password',
-                            border: OutlineInputBorder(),
-                          ),
+                          label: 'Confirm new password',
                           validator: (v) => v != _newController.text
                               ? 'Passwords do not match'
                               : null,
@@ -129,8 +144,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ],
                         const SizedBox(height: 24),
                         FilledButton(
-                          onPressed: authProvider.isLoading ? null : _submit,
-                          child: const Text('Save'),
+                          onPressed: _submitting ? null : _submit,
+                          child: _submitting
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Save'),
                         ),
                       ],
                     ),

@@ -36,6 +36,22 @@ class _StaffScreenState extends State<StaffScreen> {
     );
   }
 
+    Future<void> _openResetDialog(AuthResponse user) async {
+    final reset = await showDialog<bool>(
+      context: context,
+      builder: (_) => _ResetPasswordDialog(user: user),
+    );
+    if (reset == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Password reset. ${user.firstName} must set a new one at next login.',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,7 +83,11 @@ class _StaffScreenState extends State<StaffScreen> {
               final user = authProvider.staff[index];
               return ListTile(
                 title: Text('${user.firstName} ${user.lastName ?? ''}'.trim()),
-                subtitle: Text(user.email),
+                subtitle: Text(
+                  user.firstPassword
+                      ? '${user.email} · must change password'
+                      : user.email,
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -81,6 +101,19 @@ class _StaffScreenState extends State<StaffScreen> {
                             .read<AuthProvider>()
                             .updateUserActiveStatus(user.publicUuid, value),
                       ),
+                    ),
+                    const SizedBox(width: 4),
+                    // Mirrors the backend rule: only strictly lower ranks can
+                    // be reset, and this screen is owner-only, so another
+                    // PLATFORM_OWNER is never resettable.
+                    IconButton(
+                      tooltip: user.isPlatformOwner
+                          ? "Cannot reset another owner's password"
+                          : 'Reset password',
+                      icon: const Icon(Icons.lock_reset),
+                      onPressed: user.isPlatformOwner
+                          ? null
+                          : () => _openResetDialog(user),
                     ),
                   ],
                 ),
@@ -274,6 +307,77 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
               ? const SizedBox(
                   height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+
+class _ResetPasswordDialog extends StatefulWidget {
+  final AuthResponse user;
+  const _ResetPasswordDialog({required this.user});
+
+  @override
+  State<_ResetPasswordDialog> createState() => _ResetPasswordDialogState();
+}
+
+class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
+  bool _submitting = false;
+  String? _error;
+
+  Future<void> _submit() async {
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+
+    final error = await context
+        .read<AuthProvider>()
+        .resetStaffPassword(widget.user.publicUuid);
+
+    if (!mounted) return;
+    if (error == null) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _submitting = false;
+        _error = error;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Reset password — ${widget.user.firstName}'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "${widget.user.email}'s password will be set to "
+            '${AuthRepository.defaultStaffPassword}. They will have to choose '
+            'a new one the next time they sign in.',
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(_error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _submitting ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _submitting ? null : _submit,
+          child: _submitting
+              ? const SizedBox(
+                  height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Reset'),
         ),
       ],
     );

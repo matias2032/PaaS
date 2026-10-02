@@ -61,6 +61,9 @@ class ApiConfig {
     static String authStaffActiveUrl(String publicUuid) =>
       '$authStaffUrl/$publicUuid/active';    
 
+  static String authStaffResetPasswordUrl(String publicUuid) =>
+      '$authStaffUrl/$publicUuid/reset-password';   
+
   static String authPlatformRoleUrl(String publicUuid) =>
       '$baseUrl$_auth/$publicUuid/platform-role';
 

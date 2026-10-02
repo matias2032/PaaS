@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   login as loginApi,
   register as registerApi,
+  getByPublicUuid as getByPublicUuidApi,
   updateProfile as updateProfileApi,
   changePassword as changePasswordApi,
   forgotPassword as forgotPasswordApi,
@@ -45,6 +46,12 @@ const [auth, setAuth] = useState(() => {
 });
 const [isLoading, setIsLoading] = useState(false);
 const [error, setError] = useState(null);
+
+// Profile has its own loading/error, separate from the shared ones above:
+// ProfilePage shows the edit-profile and change-password forms side by
+// side, and a failure in one must not show up (or disable) the other.
+const [isProfileLoading, setIsProfileLoading] = useState(false);
+const [profileError, setProfileError] = useState(null);
 
 useEffect(() => {
   persistAuth(auth);
@@ -102,18 +109,30 @@ useEffect(() => {
   // login/register). We merge the fresh user data into the existing
   // session while keeping the current token intact.
   async function updateProfile(data) {
-    setIsLoading(true);
-    setError(null);
+    setIsProfileLoading(true);
+    setProfileError(null);
     try {
       const response = await updateProfileApi(data);
       setAuth((prev) => ({ ...response, token: prev?.token ?? null }));
       return response;
     } catch (err) {
-      setError(err?.response?.data?.message || 'Profile update failed');
+      setProfileError(err?.response?.data?.message || 'Profile update failed');
       throw err;
     } finally {
-      setIsLoading(false);
+      setIsProfileLoading(false);
     }
+  }
+
+  // Reloads the current user from the backend (GET /api/auth/{publicUuid}),
+  // keeping the session token. The stored session can be out of date (e.g.
+  // it predates the phone field), so pages that edit the profile call this
+  // first. Failures are thrown, not stored: the calling page decides how
+  // to show them.
+  async function refreshProfile() {
+    if (!auth?.publicUuid) return null;
+    const response = await getByPublicUuidApi(auth.publicUuid);
+    setAuth((prev) => ({ ...response, token: prev?.token ?? null }));
+    return response;
   }
 
   async function changePassword(data) {
@@ -171,9 +190,12 @@ useEffect(() => {
     isAuthenticated: !!auth?.token,
     isLoading,
     error,
+    isProfileLoading,
+    profileError,
     login,
     register,
     updateProfile,
+    refreshProfile,
     changePassword,
     forgotPassword,
     resetPassword,

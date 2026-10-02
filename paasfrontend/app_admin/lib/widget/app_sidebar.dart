@@ -8,7 +8,9 @@ import '/provider/infrastructure_provider.dart';
 import '/provider/organization_provider.dart';
 import '/provider/payment_provider.dart';
 import '/screens/audit_logs_screen.dart';
+import '/screens/change_password_screen.dart';
 import '/screens/coolify_instances_screen.dart';
+import '/screens/edit_profile_screen.dart';
 import '/screens/login_screen.dart';
 import '/screens/organizations_screen.dart';
 import '/screens/payments_screen.dart';
@@ -119,6 +121,28 @@ class AppSidebar extends StatelessWidget {
         // required by its backend controller (ORGANIZATION supervision =
         // SUPPORT, etc.). This is the only sidebar file.
         const Divider(),
+        ListTile(
+          leading: const Icon(Icons.person_outline),
+          title: const Text('Edit profile'),
+          onTap: () {
+            final navigator = Navigator.of(context);
+            navigator.pop(); // close the drawer
+            navigator.push(
+              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+            );
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.lock_outline),
+          title: const Text('Change password'),
+          onTap: () {
+            final navigator = Navigator.of(context);
+            navigator.pop(); // close the drawer
+            navigator.push(
+              MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+            );
+          },
+        ),
         ListTile(
           leading: const Icon(Icons.logout),
           title: const Text('Log out'),

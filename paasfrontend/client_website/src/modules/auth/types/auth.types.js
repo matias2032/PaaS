@@ -18,6 +18,7 @@
  * @property {string} firstName
  * @property {string} [lastName]
  * @property {string} email
+ * @property {string|null} [phone]
  * @property {string} status
  * @property {string|null} emailVerifiedAt
  * @property {string} createdAt

@@ -123,4 +123,15 @@ public class AuthController {
                 userDetails.getUsername(), publicUuid, request);
         return ResponseEntity.ok(response);
     }
+
+        @PostMapping("/staff/{publicUuid}/reset-password")
+    @PreAuthorize("hasRole('PLATFORM_OWNER')")
+    public ResponseEntity<AuthResponseDTO> resetStaffPassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID publicUuid
+    ) {
+        AuthResponseDTO response = authService.resetStaffPassword(
+                userDetails.getUsername(), publicUuid);
+        return ResponseEntity.ok(response);
+    }
 }

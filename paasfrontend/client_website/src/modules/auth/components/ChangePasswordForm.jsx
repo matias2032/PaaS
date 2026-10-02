@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../../shared/components/Button';
-import TextField from '../../../shared/components/TextField';
+import PasswordField from '../../../shared/components/PasswordField';
 import ErrorMessage from '../../../shared/components/ErrorMessage';
 import Spinner from '../../../shared/components/Spinner';
 import { useAuth } from '../hooks/useAuth';
@@ -44,19 +44,17 @@ function ChangePasswordForm({ onSuccess }) {
 
   return (
     <form className="change-password-form" onSubmit={handleSubmit}>
-      <TextField
+      <PasswordField
         label="Current password"
         name="currentPassword"
-        type="password"
         value={form.currentPassword}
         onChange={handleChange}
         required
         disabled={isRedirecting}
       />
-      <TextField
+      <PasswordField
         label="New password"
         name="newPassword"
-        type="password"
         value={form.newPassword}
         onChange={handleChange}
         required

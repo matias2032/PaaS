@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Button from '../../../shared/components/Button';
 import TextField from '../../../shared/components/TextField';
+import PasswordField from '../../../shared/components/PasswordField';
 import ErrorMessage from '../../../shared/components/ErrorMessage';
 import Spinner from '../../../shared/components/Spinner';
 import { useAuth } from '../hooks/useAuth';
@@ -37,10 +38,9 @@ function LoginForm({ onSuccess }) {
         onChange={handleChange}
         required
       />
-      <TextField
+      <PasswordField
         label="Password"
         name="password"
-        type="password"
         value={form.password}
         onChange={handleChange}
         required

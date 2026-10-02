@@ -168,6 +168,12 @@ if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new InvalidCredentialsException("Current password is incorrect");
         }
 
+        if (user.isFirstPassword()
+                && passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException(
+                    "The new password must be different from the temporary one");
+        }
+
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         user.setFirstPassword(false); // liberta o acesso — regra 1
 
@@ -344,6 +350,7 @@ if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .email(user.getEmail())
+                .phone(user.getPhone())
                 .status(user.getStatus())
                 .platformRole(user.getPlatformRole())
                 .firstPassword(user.isFirstPassword())
@@ -377,6 +384,40 @@ if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
         }
 
         targetUser.setStatus(active ? "ACTIVE" : "INACTIVE");
+        User saved = userRepository.save(targetUser);
+
+        return toResponseDTO(saved, null);
+    }
+    
+        // Reset feito por um superior: volta à password temporária e obriga a
+    // mudá-la no próximo login (mesmo estado de createStaffUser).
+    @Transactional
+    public AuthResponseDTO resetStaffPassword(String actingUserEmail, UUID targetPublicUuid) {
+        User actingUser = userRepository.findByEmail(actingUserEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        User targetUser = userRepository.findByPublicUuid(targetPublicUuid)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (actingUser.getIdUser().equals(targetUser.getIdUser())) {
+            throw new IllegalArgumentException(
+                    "You cannot reset your own password; use change password instead");
+        }
+
+        // CUSTOMER não tem tela de primeira password no client-side: ficaria
+        // com uma password conhecida sem ser obrigado a mudá-la.
+        if ("CUSTOMER".equals(targetUser.getPlatformRole())) {
+            throw new IllegalArgumentException("Only staff passwords can be reset here");
+        }
+
+        // Só subordinados: o alvo tem de ter um rank estritamente inferior.
+        if (rankOf(targetUser.getPlatformRole()) >= rankOf(actingUser.getPlatformRole())) {
+            throw new InsufficientPlatformRoleException(
+                    "Cannot reset the password of a user with the same or higher platform role");
+        }
+
+        targetUser.setPasswordHash(passwordEncoder.encode(DEFAULT_STAFF_PASSWORD));
+        targetUser.setFirstPassword(true);
         User saved = userRepository.save(targetUser);
 
         return toResponseDTO(saved, null);

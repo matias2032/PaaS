@@ -60,6 +60,69 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Reloads the current user from the backend, keeping the session token.
+  /// On failure the in-memory user is left untouched and the message is in
+  /// errorMessage.
+  Future<bool> refreshCurrentUser() async {
+    final current = _currentUser;
+    if (current == null) return false;
+
+    _errorMessage = null;
+    try {
+      final fresh = await _authRepository.getCurrentUser(current.publicUuid);
+      _currentUser = fresh.copyWith(token: current.token);
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateProfile({
+    required String firstName,
+    String? lastName,
+    String? phone,
+  }) async {
+    final current = _currentUser;
+    if (current == null) return false;
+
+    _errorMessage = null;
+    try {
+      final updated = await _authRepository.updateProfile(
+        current,
+        firstName: firstName,
+        lastName: lastName,
+        phone: phone,
+      );
+      // The response carries no token: keep the session's.
+      _currentUser = updated.copyWith(token: current.token);
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Returns null on success, or the error message. It deliberately does
+  /// not touch staffErrorMessage: StaffScreen replaces the whole list with
+  /// that message, so a failed reset would blank the screen.
+  Future<String?> resetStaffPassword(String publicUuid) async {
+    try {
+      final updated = await _authRepository.resetStaffPassword(publicUuid);
+      _staff = _staff
+          .map((user) => user.publicUuid == publicUuid ? updated : user)
+          .toList();
+      notifyListeners();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
+
   Future<bool> updateUserActiveStatus(String publicUuid, bool active) async {
     _staffErrorMessage = null;
     try {
@@ -171,3 +234,4 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+

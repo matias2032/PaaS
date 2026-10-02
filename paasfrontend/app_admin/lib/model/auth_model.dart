@@ -3,6 +3,7 @@ class AuthResponse {
   final String firstName;
   final String? lastName;
   final String email;
+  final String? phone;
   final String status;
   final String platformRole;
   final bool firstPassword;
@@ -15,6 +16,7 @@ class AuthResponse {
     required this.firstName,
     this.lastName,
     required this.email,
+    this.phone,
     required this.status,
     required this.platformRole,
     required this.firstPassword,
@@ -29,6 +31,7 @@ class AuthResponse {
       firstName: json['firstName'] as String,
       lastName: json['lastName'] as String?,
       email: json['email'] as String,
+      phone: json['phone'] as String?,
       status: json['status'] as String,
       platformRole: json['platformRole'] as String,
       firstPassword: json['firstPassword'] as bool? ?? false,
@@ -46,6 +49,7 @@ class AuthResponse {
       'firstName': firstName,
       if (lastName != null) 'lastName': lastName,
       'email': email,
+      if (phone != null) 'phone': phone,
       'status': status,
       'platformRole': platformRole,
       'firstPassword': firstPassword,
@@ -78,6 +82,7 @@ class AuthResponse {
     String? firstName,
     String? lastName,
     String? email,
+    String? phone,
     String? status,
     String? platformRole,
     bool? firstPassword,
@@ -90,6 +95,7 @@ class AuthResponse {
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
+      phone: phone ?? this.phone,
       status: status ?? this.status,
       platformRole: platformRole ?? this.platformRole,
       firstPassword: firstPassword ?? this.firstPassword,
